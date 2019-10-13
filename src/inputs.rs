@@ -26,6 +26,12 @@
 //! After talking to our technical advisor, Chittur-san, we need to handle all inputs every frame.
 //! In other words, we cannot buffer inputs and handle them once every k frames, where k > 1.
 
+/// # Note
+/// Input management will look sth like so:
+///                                  _________________
+///                                 |                 | <--------------- Keyboard Input Stream
+/// Event Stream <----------------- | Stateful Mapper | <--------------- Mouse Input Stream
+///                                 |_________________| <--------------- Joystick Input Stream
 #[derive(Default, Debug)]
 pub struct InputScheme {
     // walk_left: Button,

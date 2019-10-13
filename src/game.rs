@@ -3,7 +3,7 @@
 //! ## Rendering Details
 //! Overlapping Attacks
 //! If Player A launches an attack and so does Player B, their attacks could overlap. If their attacks overlap, which attack appears on top?
-
+use chrono::Duration;
 use ggez::nalgebra as na;
 
 use crate::{physics, inputs};
@@ -157,4 +157,15 @@ pub struct Arena {
      // background_images: Vec<ggez::Image>,
      // soundtracks: Vec<ggez::SoundData>,
      platforms: Vec<Platform>,
+}
+
+/// This is the data specific to each battle. Every battle between Fighters will be played in an Arena.
+///
+/// Note that BattleData will satisfy the `ggez::Drawable` trait (requires implementing a `draw` method),
+/// meaning it will be drawable to screen. It’ll likely just draw the arena and every player to screen.
+#[derive(Debug)]
+pub struct BattleData {
+    time_since_start: Duration,
+    players: Vec<Player>,
+    arena: Arena,
 }

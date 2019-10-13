@@ -40,15 +40,14 @@ mod inputs;
 mod game;
 
 fn setup_logger() -> Result<(), fern::InitError> {
+    let colors = fern::colors::ColoredLevelConfig::new()
+        .debug(fern::colors::Color::Magenta)
+        .trace(fern::colors::Color::Blue)
+        .info(fern::colors::Color::Green)
+        .warn(fern::colors::Color::Yellow)
+        .error(fern::colors::Color::Red);
     fern::Dispatch::new()
-        .format(|out, message, record| {
-            let colors = fern::colors::ColoredLevelConfig::new()
-                .debug(fern::colors::Color::Magenta)
-                .trace(fern::colors::Color::Blue)
-                .info(fern::colors::Color::Green)
-                .warn(fern::colors::Color::Yellow)
-                .error(fern::colors::Color::Red);
-
+        .format(move |out, message, record| {
             out.finish(format_args!(
                 "{}[{}][{}] {}",
                 chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),

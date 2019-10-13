@@ -3,6 +3,10 @@
 //! ## Regarding Collision
 //! The game engine will check for collisions. It will pairwise compare all Collidable objects.
 //!
+//! We use the following nifty to detect collision of two bounding boxes:
+//! >>> Two axes aligned boxes (of any dimension) overlap if and only if the projections to all axes overlap
+//! - [Source](https://stackoverflow.com/a/20925869/6421681)
+//!
 //! ### Algorithmic complexity
 //! If we have `n` `Collidable` objects, each with `b` `BoundingBoxes`, then we can iterate over
 //! each collidable, iterate over every collidable, iterate over the pairs of bounding boxes in
@@ -12,8 +16,14 @@
 //! Will likely need to benchmark parallel and single-threaded versions of the code.
 //!
 //! We’ll deal with it when perf becomes an issue.
+//!
+//! ## TODO
+//! ### Testcases
+//! * Every method under the BoundingBox impl
 
 use ggez::nalgebra as na;
+
+type Radians = f32;
 
 /// Denotes an `area` is being occupied.
 #[derive(Debug)]
@@ -21,27 +31,35 @@ pub struct BoundingBox {
     /// The pos (x, h) of the bounds. +x goes up and +y goes right.
     pub pos: na::Vector2<f32>,
     /// The size (w, h) of the bounds.
-    pub siz: na::Vector2<f32>,
-    /// Radians to rotate the box in the counterclockwise directions.
-    pub ori: f32,
+    pub size: na::Vector2<f32>,
+    /// Orientation, i.e. radians to rotate the box in the counterclockwise directions.
+    pub ori: Radians,
 }
 impl BoundingBox {
-    /// Rotates a point.
-    fn rotate(point: na::Vector2<f32>, ori: f32) -> na::Vector2<f32> {
+    /// Rotates a point counterclockwise.
+    fn rotate(point: na::Vector2<f32>, ori: Radians) -> na::Vector2<f32> {
         na::Vector2::new(
             ori.cos() * point[0] - ori.sin() * point[1],
             ori.sin() * point[0] + ori.cos() * point[1],
         )
     }
 
-    /// The 4 corners of an untransformed `BoundingBox`.
-    fn base_corners(&self) -> na::Matrix4x2<f32> {
+    /// The 4 corners of an untransformed `BoundingBox`, as columns.
+    /// The first column corresponds to the bottom-left,
+    /// the second column corresponds to the top-left,
+    /// the third column corresponds to the bottom-right,
+    /// the fourth column corresponds to the top-right.
+    /// 2 ---------------- 4
+    /// |                  |
+    /// |                  |
+    /// 1 ---------------- 3
+    fn base_corners(&self) -> na::Matrix2x4<f32> {
         na::Matrix4x2::new(
-            0f32,        0f32,
-            0f32,        self.siz[1],
-            self.siz[0], 0f32,
-            self.siz[0], self.siz[1],
-        )
+            0f32,         0f32,
+            0f32,         self.size[1],
+            self.size[0], 0f32,
+            self.size[0], self.size[1]
+        ).transpose()
     }
     /// A rotation matrix for turning a 2D point counterclockwise `ori` radians.
     fn rot_matrix(&self) -> na::Matrix2<f32> {
@@ -52,9 +70,9 @@ impl BoundingBox {
     }
     /// A function to return the four corners of the `BoundingBox` after applying the necessary
     /// transformations.
-    fn corners(&self) -> na::Matrix4x2<f32> {
-        let mut rotated_corners = self.base_corners() * self.rot_matrix();
-        rotated_corners.row_iter_mut().map(|r| r + self.pos.transpose());
+    fn corners(&self) -> na::Matrix2x4<f32> {
+        let mut rotated_corners = self.rot_matrix() * self.base_corners();
+        rotated_corners.column_iter_mut().map(|c| c + self.pos);
         rotated_corners
     }
     /// Returns the min and max x and y values when projected to the x and y axis arranged in the
@@ -64,8 +82,8 @@ impl BoundingBox {
     /// | minimum_y_location, maximum_y_location |
     fn bounds(&self) -> na::Matrix2<f32> {
         let corners = self.corners();
-        let deref_map = |col, init, folding_fn: fn(_, _) -> _| {
-            corners.column(col).iter().map(|f| *f).fold(init, folding_fn)
+        let deref_map = |row, init, folding_fn: fn(_, _) -> _| {
+            corners.row(row).iter().map(|f| *f).fold(init, folding_fn)
         };
         na::Matrix2::new(
             deref_map(0, std::f32::INFINITY, f32::min), deref_map(0, std::f32::NEG_INFINITY, f32::max),
@@ -74,22 +92,25 @@ impl BoundingBox {
     }
 
     /// Check if a collision can be detected from one of the two boxes.
+    /// Check the module-level doc to understand our collision detection algorithm.
     ///
-    /// A full collision check requires two of these with flipped parameters, so the is termed
+    /// A full collision check requires two of these with flipped parameters, so this is termed
     /// `half` a collision check.
     fn check_half_collision(&self, basis: &BoundingBox) -> bool {
         let rhs = self.normalized_wrt(basis);
-        let lhs_bounds = basis.siz;
+        let lhs_bounds = basis.size;
         let rhs_bounds = rhs.bounds();
         // Bounds checking is rather complicated.
         //
-        // There are fundamentally four cases, but all four can be collapsed to the following to.
+        // There are fundamentally four cases, but all four can be collapsed to the following two.
         // The key insight is that the maximum of the minimum of both bounds must be less than the
         // minimum of the maximum of both bounds for there to be an overlap of two bounds.
-        f32::max(rhs_bounds[(0, 0)], 0f32) >= f32::min(rhs_bounds[(0, 1)], lhs_bounds[0])
-            && f32::max(rhs_bounds[(1, 0)], 0f32) >= f32::min(rhs_bounds[(1, 1)], lhs_bounds[1])
+
+        f32::max(rhs_bounds[(0, 0)], 0f32) <= f32::min(rhs_bounds[(0, 1)], lhs_bounds[0])
+            && f32::max(rhs_bounds[(1, 0)], 0f32) <= f32::min(rhs_bounds[(1, 1)], lhs_bounds[1])
     }
     /// Checks if two `BoundingBox`es collide.
+    /// Check the module-level doc to understand our collision detection algorithm.
     ///
     /// The underlying logic is that if any edge can show a separation between the two boxes, then
     /// the two boxes do not intersect.
@@ -100,9 +121,8 @@ impl BoundingBox {
     /// Normalize a box w.r.t. a basis.
     fn normalized_wrt(&self, basis: &Self) -> Self {
         Self {
-            // TODO fix this rotation.
             pos: Self::rotate(self.pos - basis.pos, self.ori - basis.ori),
-            siz: self.siz,
+            size: self.size,
             ori: self.ori - basis.ori,
         }
     }
