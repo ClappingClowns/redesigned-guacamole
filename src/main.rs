@@ -23,7 +23,7 @@
 //! However, our game is relatively simple, so this should be a non-issue.
 //!
 //! # Tasks / Milestones
-//! * Future tasks in order of importance:
+//! ## Future tasks in order of importance:
 //! * Support saves
 //! * Support skill trees
 //! * Support local multiplayer

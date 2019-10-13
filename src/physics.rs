@@ -45,14 +45,21 @@ impl BoundingBox {
     }
 
     /// The 4 corners of an untransformed `BoundingBox`, as columns.
+    /// 
     /// The first column corresponds to the bottom-left,
+    /// 
     /// the second column corresponds to the top-left,
+    /// 
     /// the third column corresponds to the bottom-right,
+    /// 
     /// the fourth column corresponds to the top-right.
+    /// 
+    /// ```
     /// 2 ---------------- 4
     /// |                  |
     /// |                  |
     /// 1 ---------------- 3
+    /// ```
     fn base_corners(&self) -> na::Matrix2x4<f32> {
         na::Matrix4x2::new(
             0f32,         0f32,
@@ -79,6 +86,7 @@ impl BoundingBox {
     /// following way:
     ///
     /// | minimum_x_location, maximum_x_location |
+    /// 
     /// | minimum_y_location, maximum_y_location |
     fn bounds(&self) -> na::Matrix2<f32> {
         let corners = self.corners();

@@ -28,10 +28,12 @@
 
 /// # Note
 /// Input management will look sth like so:
+/// ```
 ///                                  _________________
 ///                                 |                 | <--------------- Keyboard Input Stream
 /// Event Stream <----------------- | Stateful Mapper | <--------------- Mouse Input Stream
 ///                                 |_________________| <--------------- Joystick Input Stream
+/// ```
 #[derive(Default, Debug)]
 pub struct InputScheme {
     // walk_left: Button,
