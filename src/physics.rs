@@ -1,11 +1,7 @@
 //! A collection of structs, traits, and functions for use with physics.
 //!
-//! ## Regarding Collision
+//! ## Collisions
 //! The game engine will check for collisions. It will pairwise compare all Collidable objects.
-//!
-//! We use the following nifty to detect collision of two bounding boxes:
-//! >>> Two axes aligned boxes (of any dimension) overlap if and only if the projections to all axes overlap
-//! - [Source](https://stackoverflow.com/a/20925869/6421681)
 //!
 //! ### Algorithmic complexity
 //! If we have `n` `Collidable` objects, each with `b` `BoundingBoxes`, then we can iterate over
@@ -16,17 +12,13 @@
 //! Will likely need to benchmark parallel and single-threaded versions of the code.
 //!
 //! We’ll deal with it when perf becomes an issue.
-//!
-//! ## TODO
-//! ### Testcases
-//! * Every method under the BoundingBox impl
 
 use ggez::nalgebra as na;
 
 type Radians = f32;
 
 /// Denotes an `area` is being occupied.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BoundingBox {
     /// The pos (x, h) of the bounds. +x goes up and +y goes right.
     pub pos: na::Vector2<f32>,
@@ -44,16 +36,9 @@ impl BoundingBox {
         )
     }
 
-    /// The 4 corners of an untransformed `BoundingBox`, as columns.
-    /// 
-    /// The first column corresponds to the bottom-left,
-    /// 
-    /// the second column corresponds to the top-left,
-    /// 
-    /// the third column corresponds to the bottom-right,
-    /// 
-    /// the fourth column corresponds to the top-right.
-    /// 
+    /// The 4 corners of an untransformed `BoundingBox`, as columns. The diagram indicates which
+    /// column corresponds to which corner when the bounding box is not rotated.
+    ///
     /// ```
     /// 2 ---------------- 4
     /// |                  |
@@ -79,14 +64,16 @@ impl BoundingBox {
     /// transformations.
     fn corners(&self) -> na::Matrix2x4<f32> {
         let mut rotated_corners = self.rot_matrix() * self.base_corners();
-        rotated_corners.column_iter_mut().map(|c| c + self.pos);
+        for mut c in rotated_corners.column_iter_mut() {
+            c += &self.pos;
+        } // to consume the map
         rotated_corners
     }
     /// Returns the min and max x and y values when projected to the x and y axis arranged in the
     /// following way:
     ///
     /// | minimum_x_location, maximum_x_location |
-    /// 
+    ///
     /// | minimum_y_location, maximum_y_location |
     fn bounds(&self) -> na::Matrix2<f32> {
         let corners = self.corners();
@@ -102,15 +89,16 @@ impl BoundingBox {
     /// Check if a collision can be detected from one of the two boxes.
     /// Check the module-level doc to understand our collision detection algorithm.
     ///
-    /// A full collision check requires two of these with flipped parameters, so this is termed
-    /// `half` a collision check.
+    /// A full collision check requires two calls to this with flipped parameters, so this is
+    /// termed `half` a collision check.
     fn check_half_collision(&self, basis: &BoundingBox) -> bool {
         let rhs = self.normalized_wrt(basis);
         let lhs_bounds = basis.size;
         let rhs_bounds = rhs.bounds();
-        // Bounds checking is rather complicated.
+
+        // Bounds checking is rather ... complicated/involved.
         //
-        // There are fundamentally four cases, but all four can be collapsed to the following two.
+        // There are four obvious cases, but all four can be collapsed to the following two.
         // The key insight is that the maximum of the minimum of both bounds must be less than the
         // minimum of the maximum of both bounds for there to be an overlap of two bounds.
 
@@ -180,7 +168,8 @@ where
     })
 }
 /// Computes the cartesian square of an iterator. Requires that the iterator iterate over copyable
-/// elements and the iterator itself be cloneable.
+/// elements and the iterator itself be cloneable. Only one of non-unique elements are emitted and
+/// elements whose members are identical are eliminated.
 fn unique_cartesian_square<T, IT, IIT>(tt: IIT) -> impl std::iter::Iterator<Item = (T, T)>
 where
     T: Copy,
@@ -219,4 +208,146 @@ pub fn check_for_collisions<'tick>(entities: &[&'tick dyn Collidable]) -> Vec<Co
         .filter(|(_, hb_collisions): &(_, Vec<_>)| !hb_collisions.is_empty())
         .map(Collision::from)
         .collect()
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    type V2 = na::Vector2<f32>;
+    fn approx_eq(a: V2, b: V2) -> bool {
+        const EPSILON: f32 = 1e-5;
+        (a[0] - b[0]).abs() < EPSILON && (a[1] - b[1]).abs() < EPSILON
+    }
+    fn build_bounding() -> BoundingBox {
+        BoundingBox {
+            pos: V2::new(1., 2.),
+            size: V2::new(3., 4.),
+            ori: std::f32::consts::PI / 2.,
+        }
+    }
+
+    #[test]
+    fn bounding_box_rotate() {
+        let ex = V2::new(0.5, 0.5);
+        let ex_quarter = BoundingBox::rotate(ex, std::f32::consts::PI / 2.);
+        assert!(approx_eq(ex, V2::new(0.5, 0.5)));
+        assert!(approx_eq(ex_quarter, V2::new(-0.5, 0.5)));
+        let ex_half = BoundingBox::rotate(ex_quarter, std::f32::consts::PI / 2.);
+        assert!(approx_eq(ex_half, V2::new(-0.5, -0.5)));
+    }
+
+    #[test]
+    fn obb_base_corners() {
+        let corners = build_bounding().base_corners();
+        assert!(approx_eq(V2::from(corners.column(0)), V2::new(0., 0.)));
+        assert!(approx_eq(V2::from(corners.column(1)), V2::new(0., 4.)));
+        assert!(approx_eq(V2::from(corners.column(2)), V2::new(3., 0.)));
+        assert!(approx_eq(V2::from(corners.column(3)), V2::new(3., 4.)));
+    }
+
+    #[test]
+    fn obb_rot_matrix() {
+        let rot = build_bounding().rot_matrix();
+        let ex = V2::new(0.5, 0.5);
+        assert!(approx_eq(rot * ex, V2::new(-0.5, 0.5)));
+    }
+
+    #[test]
+    fn obb_corners() {
+        let corners = build_bounding().corners();
+        assert!(approx_eq(V2::from(corners.column(0)), V2::new( 1., 2.)));
+        assert!(approx_eq(V2::from(corners.column(1)), V2::new(-3., 2.)));
+        assert!(approx_eq(V2::from(corners.column(2)), V2::new( 1., 5.)));
+        assert!(approx_eq(V2::from(corners.column(3)), V2::new(-3., 5.)));
+    }
+
+    #[test]
+    fn obb_bounds() {
+        let bounds = build_bounding().bounds();
+        assert!(approx_eq(V2::from(bounds.row(0).transpose()), V2::new(-3., 1.)));
+        assert!(approx_eq(V2::from(bounds.row(1).transpose()), V2::new( 2., 5.)));
+    }
+
+    fn separate_boxes() -> (BoundingBox, BoundingBox) {
+        (BoundingBox {
+            pos: V2::zeros(),
+            size: V2::new(1., 1.),
+            ori: 0.,
+        }, BoundingBox {
+            pos: V2::zeros(),
+            size: V2::new(1., 1.),
+            ori: 0.,
+        })
+    }
+    fn colliding_boxes() -> (BoundingBox, BoundingBox)  {
+        (BoundingBox {
+            pos: V2::zeros(),
+            size: V2::new(1., 1.),
+            ori: 0.,
+        }, BoundingBox {
+            pos: V2::new(-0.1, -0.1),
+            size: V2::new(1., 1.),
+            ori: std::f32::consts::PI,
+        })
+    }
+    fn pathological_separate_boxes() -> (BoundingBox, BoundingBox) {
+        (BoundingBox {
+            pos: V2::zeros(),
+            size: V2::new(1., 1.),
+            ori: 0.,
+        }, BoundingBox {
+            pos: V2::new(1.5, 0.5),
+            size: V2::new(5., 0.5),
+            ori: std::f32::consts::PI / 4.,
+        })
+    }
+
+    #[test]
+    fn obb_half_collision() {
+        { // separate
+            let (a, b) = separate_boxes();
+            assert!(a.check_half_collision(&b))
+        }
+        { // colliding
+            let (a, b) = colliding_boxes();
+            assert!(!a.check_half_collision(&b));
+        }
+        { // pathological separate
+            let (a, b) = pathological_separate_boxes();
+            assert!(a.check_half_collision(&b));
+        }
+    }
+
+    #[test]
+    fn obb_collision() {
+        { // separate
+            let (a, b) = separate_boxes();
+            assert!(BoundingBox::check_collision(&a, &b));
+        }
+        { // colliding
+            let (a, b) = colliding_boxes();
+            assert!(!BoundingBox::check_collision(&a, &b));
+        }
+        { // pathological separate
+            let (a, b) = pathological_separate_boxes();
+            assert!(!BoundingBox::check_collision(&a, &b));
+        }
+    }
+
+    #[test]
+    fn obb_norm_wrt() {
+        let b = build_bounding();
+        let normed = b.normalized_wrt(&b);
+        assert!(approx_eq(normed.pos, V2::new(0., 0.)));
+        assert!(approx_eq(normed.size, V2::new(3., 4.)));
+        assert!(normed.ori.abs() < 1e-5);
+        let mut weird_b = b.clone();
+        weird_b.pos[0] = 0.;
+        weird_b.ori = -std::f32::consts::PI / 2.;
+        let normed = b.normalized_wrt(&weird_b);
+        assert!(approx_eq(normed.pos, V2::new(-1., 0.)));
+        assert!(approx_eq(normed.size, V2::new(3., 4.)));
+        assert!((normed.ori - std::f32::consts::PI).abs() < 1e-5);
+    }
 }
