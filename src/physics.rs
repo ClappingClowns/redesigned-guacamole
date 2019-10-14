@@ -95,7 +95,6 @@ impl BoundingBox {
         let rhs = self.normalized_wrt(basis);
         let lhs_bounds = basis.size;
         let rhs_bounds = rhs.bounds();
-
         // Bounds checking is rather ... complicated/involved.
         //
         // There are four obvious cases, but all four can be collapsed to the following two.
@@ -211,7 +210,7 @@ pub fn check_for_collisions<'tick>(entities: &[&'tick dyn Collidable]) -> Vec<Co
 }
 
 #[cfg(test)]
-mod test {
+mod obb_test {
     use super::*;
 
     type V2 = na::Vector2<f32>;
@@ -269,7 +268,7 @@ mod test {
         assert!(approx_eq(V2::from(bounds.row(1).transpose()), V2::new( 2., 5.)));
     }
 
-    fn separate_boxes() -> (BoundingBox, BoundingBox) {
+    fn colliding_boxes() -> (BoundingBox, BoundingBox) {
         (BoundingBox {
             pos: V2::zeros(),
             size: V2::new(1., 1.),
@@ -280,7 +279,7 @@ mod test {
             ori: 0.,
         })
     }
-    fn colliding_boxes() -> (BoundingBox, BoundingBox)  {
+    fn separate_boxes() -> (BoundingBox, BoundingBox)  {
         (BoundingBox {
             pos: V2::zeros(),
             size: V2::new(1., 1.),
@@ -307,11 +306,11 @@ mod test {
     fn obb_half_collision() {
         { // separate
             let (a, b) = separate_boxes();
-            assert!(a.check_half_collision(&b))
+            assert!(!a.check_half_collision(&b))
         }
         { // colliding
             let (a, b) = colliding_boxes();
-            assert!(!a.check_half_collision(&b));
+            assert!(a.check_half_collision(&b));
         }
         { // pathological separate
             let (a, b) = pathological_separate_boxes();
@@ -323,11 +322,11 @@ mod test {
     fn obb_collision() {
         { // separate
             let (a, b) = separate_boxes();
-            assert!(BoundingBox::check_collision(&a, &b));
+            assert!(!BoundingBox::check_collision(&a, &b));
         }
         { // colliding
             let (a, b) = colliding_boxes();
-            assert!(!BoundingBox::check_collision(&a, &b));
+            assert!(BoundingBox::check_collision(&a, &b));
         }
         { // pathological separate
             let (a, b) = pathological_separate_boxes();
@@ -349,5 +348,109 @@ mod test {
         assert!(approx_eq(normed.pos, V2::new(-1., 0.)));
         assert!(approx_eq(normed.size, V2::new(3., 4.)));
         assert!((normed.ori - std::f32::consts::PI).abs() < 1e-5);
+    }
+}
+
+#[cfg(test)]
+mod cartesian_test {
+    use super::*;
+
+    type V2 = na::Vector2<f32>;
+    fn num_list1() -> [u32; 3] {
+        [1, 2, 3]
+    }
+
+    fn num_list2() -> [u32; 3] {
+        [4, 5, 6]
+    }
+
+    fn correct_product() -> [(u32,u32); 9] {
+        [(1, 4), (1, 5), (1, 6),
+         (2, 4), (2, 5), (2, 6),
+         (3, 4), (3, 5), (3, 6),]
+    }
+
+    fn correct_square() -> [(u32,u32); 3] {
+        [(1, 2), (1, 3), (2, 3)]
+    }
+
+    fn box_list1() -> Vec<BoundingBox> {
+        vec![BoundingBox {
+            pos: V2::zeros(),
+            size: V2::new(1., 1.),
+            ori: 0.,
+        }, BoundingBox {
+            pos: V2::new(1.5, 0.),
+            size: V2::new(1., 1.),
+            ori: 0.,
+        }]
+    }
+
+    fn box_list2() -> Vec<BoundingBox> {
+        vec![BoundingBox {
+            pos: V2::new(-50.1, -50.1),
+            size: V2::new(1., 1.),
+            ori: 0.,
+        }, BoundingBox {
+            pos: V2::new(1.25, 0.),
+            size: V2::new(1., 1.),
+            ori: std::f32::consts::PI/4.,
+        }]
+    }
+
+    fn pair_matches<E> (tp1: &(E,E), tp2: &(E,E)) -> bool 
+    where E: Eq + Copy
+    {
+        (tp1 == tp2) ||
+        (tp1 == &(tp2.1, tp2.0))
+    }
+
+    fn pair_matches2<E> (tp1: &(&E,&E), tp2: &(&E,&E)) -> bool {
+        (std::ptr::eq(tp1.0, tp2.0) && std::ptr::eq(tp1.1, tp2.1)) ||
+        (std::ptr::eq(tp1.0, tp2.1) && std::ptr::eq(tp1.1, tp2.0))
+    }
+
+
+    #[test]
+    fn cartesian_product_test() {
+        let list1 = num_list1();
+        let list2 = num_list2();
+        let pairs: Vec<_> = cartesian_product(&list1, &list2).map(|t| (*t.0, *t.1)).collect();
+        assert!(pairs.len() == correct_product().len());
+        for element in correct_product().iter() {
+            assert!(pairs.iter().filter(|a| pair_matches(a, element)).count() == 1);
+        }
+        
+    }
+
+    #[test]
+    fn cartesian_square_test() {
+        let list = num_list1();
+        let pairs: Vec<_> = unique_cartesian_square(&list).map(|t| (*t.0, *t.1)).collect();
+        assert!(pairs.len() == correct_square().len());
+        for element in correct_square().iter() {
+            assert!(pairs.iter().filter(|a| pair_matches(a, element)).count() == 1);
+        }
+        
+    }
+
+    #[test]
+    fn hb_collisions_test() {
+        let boxes1 = box_list1();
+        let boxes2 = box_list2();
+        let correct_collisions = vec![(&boxes1[0], &boxes2[1]), (&boxes1[1], &boxes2[1])];
+        let pairs = check_for_hb_collisions((&boxes1, &boxes2));
+        println!("{:?}", pairs.len());
+        println!("{:?}", correct_collisions.len());
+        assert!(pairs.len() == correct_collisions.len());
+
+        for element in correct_collisions.iter() {
+            assert!(pairs.iter().filter(|a| pair_matches2(a, element)).count() == 1);
+        }
+    }
+
+    #[test]
+    fn collisions_test() {
+        //TODO
     }
 }
