@@ -428,7 +428,7 @@ mod cartesian_test {
         (tp1 == &(tp2.1, tp2.0))
     }
 
-    fn pair_matches2<E> (tp1: &(&E,&E), tp2: &(&E,&E)) -> bool {
+    fn pair_matches2<E> (tp1: (&E,&E), tp2: (&E,&E)) -> bool {
         (std::ptr::eq(tp1.0, tp2.0) && std::ptr::eq(tp1.1, tp2.1)) ||
         (std::ptr::eq(tp1.0, tp2.1) && std::ptr::eq(tp1.1, tp2.0))
     }
@@ -466,41 +466,47 @@ mod cartesian_test {
         assert!(pairs.len() == correct_collisions.len());
 
         for element in correct_collisions.iter() {
-            assert!(pairs.iter().filter(|a| pair_matches2(a, element)).count() == 1);
+            assert!(pairs.iter().filter(|a| pair_matches2(**a, *element)).count() == 1);
         }
     }
 
     #[test]
     fn collisions_test() {
-        let boxes1 = box_list1();
-        let boxes2 = box_list2();
-        let boxes3 = box_list3();
-        let element1: &dyn Collidable = &DummyStruct {
-            boxes: boxes1
-        };
-        let element2: &dyn Collidable = &DummyStruct {
-            boxes: boxes2
-        };
-        let element3: &dyn Collidable = &DummyStruct {
-            boxes: boxes3
-        };
-        let elements = vec![element1, element2, element3];
-        let collisions = check_for_collisions(&elements[..]);
+        let els: Vec<_> = [box_list1, box_list2, box_list3].into_iter()
+            .map(|hb_fn| DummyStruct { boxes: hb_fn() })
+            .collect();
+        let el_refs: Vec<_> = els.iter()
+            .map(|r| r as &dyn Collidable)
+            .collect();
+        let hb_refs: Vec<Vec<_>> = els.iter()
+            .map(|e| e.get_hitboxes().iter().collect())
+            .collect();
+
+        let mut collisions = check_for_collisions(el_refs.as_slice());
         assert!(collisions.len() == 1);
-        if std::ptr::eq(collisions[0].objs.0, element1) {
-            assert!(std::ptr::eq(collisions[0].objs.0, element1));
-            assert!(std::ptr::eq(collisions[0].objs.1, element2));
+
+        let Collision {
+            overlapping_hitboxes: overlaps,
+            objs: (obj0, obj1),
+        } = collisions.pop().unwrap();
+
+        if std::ptr::eq(obj0, el_refs[0]) {
+            assert!(std::ptr::eq(obj0, el_refs[0]));
+            assert!(std::ptr::eq(obj1, el_refs[1]));
         } else {
-            assert!(std::ptr::eq(collisions[0].objs.1, element1));
-            assert!(std::ptr::eq(collisions[0].objs.0, element2));
+            assert!(std::ptr::eq(obj1, el_refs[0]));
+            assert!(std::ptr::eq(obj0, el_refs[1]));
         }
-        assert!(collisions[0].overlapping_hitboxes.len() == 2);
-        if pair_matches2(&collisions[0].overlapping_hitboxes[0], &(&element1.get_hitboxes()[0], &element2.get_hitboxes()[1])) {
-            assert!(pair_matches2(&collisions[0].overlapping_hitboxes[0], &(&element1.get_hitboxes()[0], &element2.get_hitboxes()[1])));
-            assert!(pair_matches2(&collisions[0].overlapping_hitboxes[1], &(&element1.get_hitboxes()[1], &element2.get_hitboxes()[1])));
+
+        assert!(overlaps.len() == 2);
+        let match0 = (hb_refs[0][0], hb_refs[1][1]);
+        let match1 = (hb_refs[0][1], hb_refs[1][1]);
+        if pair_matches2(overlaps[0], match0) {
+            assert!(pair_matches2(overlaps[0], match0));
+            assert!(pair_matches2(overlaps[1], match1));
         } else {
-            assert!(pair_matches2(&collisions[0].overlapping_hitboxes[1], &(&element1.get_hitboxes()[0], &element2.get_hitboxes()[1])));
-            assert!(pair_matches2(&collisions[0].overlapping_hitboxes[0], &(&element1.get_hitboxes()[1], &element2.get_hitboxes()[1])));
+            assert!(pair_matches2(overlaps[1], match0));
+            assert!(pair_matches2(overlaps[0], match1));
         }
     }
 }
