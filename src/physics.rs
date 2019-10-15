@@ -355,6 +355,17 @@ mod obb_test {
 mod cartesian_test {
     use super::*;
 
+    pub struct DummyStruct {
+        boxes: Vec<BoundingBox>
+    }
+
+    impl Collidable for DummyStruct {
+        fn get_hitboxes<'tick>(&'tick self) -> &'tick[BoundingBox] {
+            &self.boxes
+        }
+        fn get_effects(&self) {}
+    }
+
     type V2 = na::Vector2<f32>;
     fn num_list1() -> [u32; 3] {
         [1, 2, 3]
@@ -393,6 +404,18 @@ mod cartesian_test {
             ori: 0.,
         }, BoundingBox {
             pos: V2::new(1.25, 0.),
+            size: V2::new(1., 1.),
+            ori: std::f32::consts::PI/4.,
+        }]
+    }
+
+    fn box_list3() -> Vec<BoundingBox> {
+        vec![BoundingBox {
+            pos: V2::new(50.1, 50.1),
+            size: V2::new(1., 1.),
+            ori: 0.,
+        }, BoundingBox {
+            pos: V2::new(51.25, 50.),
             size: V2::new(1., 1.),
             ori: std::f32::consts::PI/4.,
         }]
@@ -440,8 +463,6 @@ mod cartesian_test {
         let boxes2 = box_list2();
         let correct_collisions = vec![(&boxes1[0], &boxes2[1]), (&boxes1[1], &boxes2[1])];
         let pairs = check_for_hb_collisions((&boxes1, &boxes2));
-        println!("{:?}", pairs.len());
-        println!("{:?}", correct_collisions.len());
         assert!(pairs.len() == correct_collisions.len());
 
         for element in correct_collisions.iter() {
@@ -451,6 +472,35 @@ mod cartesian_test {
 
     #[test]
     fn collisions_test() {
-        //TODO
+        let boxes1 = box_list1();
+        let boxes2 = box_list2();
+        let boxes3 = box_list3();
+        let element1: &dyn Collidable = &DummyStruct {
+            boxes: boxes1
+        };
+        let element2: &dyn Collidable = &DummyStruct {
+            boxes: boxes2
+        };
+        let element3: &dyn Collidable = &DummyStruct {
+            boxes: boxes3
+        };
+        let elements = vec![element1, element2, element3];
+        let collisions = check_for_collisions(&elements[..]);
+        assert!(collisions.len() == 1);
+        if std::ptr::eq(collisions[0].objs.0, element1) {
+            assert!(std::ptr::eq(collisions[0].objs.0, element1));
+            assert!(std::ptr::eq(collisions[0].objs.1, element2));
+        } else {
+            assert!(std::ptr::eq(collisions[0].objs.1, element1));
+            assert!(std::ptr::eq(collisions[0].objs.0, element2));
+        }
+        assert!(collisions[0].overlapping_hitboxes.len() == 2);
+        if pair_matches2(&collisions[0].overlapping_hitboxes[0], &(&element1.get_hitboxes()[0], &element2.get_hitboxes()[1])) {
+            assert!(pair_matches2(&collisions[0].overlapping_hitboxes[0], &(&element1.get_hitboxes()[0], &element2.get_hitboxes()[1])));
+            assert!(pair_matches2(&collisions[0].overlapping_hitboxes[1], &(&element1.get_hitboxes()[1], &element2.get_hitboxes()[1])));
+        } else {
+            assert!(pair_matches2(&collisions[0].overlapping_hitboxes[1], &(&element1.get_hitboxes()[0], &element2.get_hitboxes()[1])));
+            assert!(pair_matches2(&collisions[0].overlapping_hitboxes[0], &(&element1.get_hitboxes()[1], &element2.get_hitboxes()[1])));
+        }
     }
 }
