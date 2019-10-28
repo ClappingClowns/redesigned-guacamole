@@ -29,44 +29,18 @@
 //! * Support local multiplayer
 //! * Add audio
 //! Check initial game idea doc for more features!
-
 use ggez::{Context, ContextBuilder, GameResult};
 use ggez::event::{self, EventHandler};
-use ggez::graphics;
+use ggez::graphics::{self, Drawable, DrawParam};
 
 mod screens;
 mod physics;
 mod inputs;
 mod game;
-
-fn setup_logger() -> Result<(), fern::InitError> {
-    let colors = fern::colors::ColoredLevelConfig::new()
-        .debug(fern::colors::Color::Magenta)
-        .trace(fern::colors::Color::Blue)
-        .info(fern::colors::Color::Green)
-        .warn(fern::colors::Color::Yellow)
-        .error(fern::colors::Color::Red);
-    fern::Dispatch::new()
-        .format(move |out, message, record| {
-            out.finish(format_args!(
-                "{}[{}][{}] {}",
-                chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
-                record.target(),
-                colors.color(record.level()),
-                message
-            ))
-        })
-        .level(log::LevelFilter::Debug)
-        .level_for("winit", log::LevelFilter::Warn)
-        .level_for("gfx_device_gl", log::LevelFilter::Warn)
-        .chain(std::io::stdout())
-        .chain(fern::log_file("output.log")?)
-        .apply()?;
-    Ok(())
-}
+mod logging;
 
 fn main() {
-    setup_logger().unwrap();
+    logging::setup().unwrap();
 
     // Make a Context and an EventLoop.
     let (mut ctx, mut event_loop) =
@@ -113,22 +87,15 @@ impl EventHandler for WIPRG {
         while ggez::timer::check_update_time(ctx, 60) {
             // TODO: useful work.
         }
-        log::debug!("Yay, a frame!");
         Ok(())
     }
 
     fn draw(&mut self, ctx: &mut Context)-> GameResult<()> {
-        use rand::Rng;
-        let mut rng = rand::thread_rng();
-        graphics::clear(ctx, graphics::Color {
-            r: rng.gen(),
-            g: rng.gen(),
-            b: rng.gen(),
-            a: rng.gen(),
-        });
-
-        // Draw code here...
-
+        graphics::clear(ctx, graphics::BLACK);
+        match self.screen.draw(ctx, DrawParam::new()) {
+            Ok(()) => (),
+            Err(reason) => log::error!("{}", reason),
+        };
         graphics::present(ctx)
     }
 }
