@@ -16,7 +16,7 @@
 //! * Can write shaders
 //! * Game engine support for instancing (link2)
 //! * Very simple audio & config management (engine can take care of zip files too)
-//! 
+//!
 //! Downsides:
 //! * Ggez is not ECS-based. Should we encounter performance issues, we will likely have to parallelize the
 //! game ourselves (which can be a good thing or a bad thing--good because better customizability, bad because more effort).
@@ -29,7 +29,7 @@
 //! * Support local multiplayer
 //! * Add audio
 //! Check initial game idea doc for more features!
-use ggez::{ContextBuilder};
+use ggez::ContextBuilder;
 use ggez::conf::{WindowSetup, WindowMode};
 use ggez::event;
 
@@ -68,3 +68,4 @@ fn main() {
         Err(e) => println!("Error occured: {}", e)
     }
 }
+
