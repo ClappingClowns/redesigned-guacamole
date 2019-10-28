@@ -30,6 +30,7 @@
 //! * Add audio
 //! Check initial game idea doc for more features!
 use ggez::{Context, ContextBuilder, GameResult};
+use ggez::conf::{WindowSetup, WindowMode};
 use ggez::event::{self, EventHandler};
 use ggez::graphics::{self, Drawable, DrawParam};
 
@@ -44,11 +45,19 @@ fn main() {
 
     // Make a Context and an EventLoop.
     let (mut ctx, mut event_loop) =
-       ContextBuilder::new("wip-redesigned-guac", "clapping-clowns")
+       ContextBuilder::new("Walpurgis", "clapping-clowns")
+            .window_setup(WindowSetup {
+                title: "Walpurgis".to_owned(),
+                ..WindowSetup::default()
+            })
+            .window_mode(WindowMode {
+                resizable: true,
+                ..WindowMode::default()
+            })
            .build()
            .unwrap();
 
-    let mut my_game = WIPRG::new(&mut ctx);
+    let mut my_game = Walpurgis::new(&mut ctx);
 
     // Run!
     match event::run(&mut ctx, &mut event_loop, &mut my_game) {
@@ -58,12 +67,12 @@ fn main() {
 }
 
 /// This is the global game state. We are likely going to want to have a couple of menu screens and a game screen. Thus, in Rust, it could look like so:
-struct WIPRG {
+struct Walpurgis {
     // TODO: Some shared state
     /// Screen specific state.
     screen: screens::Screen,
 }
-impl WIPRG {
+impl Walpurgis {
     /// Create a new game state, referencing the provided `ggez` `Context`.
     pub fn new(_ctx: &mut Context) -> Self {
         // Load/create resources here: images, fonts, sounds, etc.
@@ -73,7 +82,7 @@ impl WIPRG {
     }
 }
 
-impl EventHandler for WIPRG {
+impl EventHandler for Walpurgis {
     /// This executes a tick update.
     /// 1. Collision detection
     /// 2. Platform/Floor Collision
@@ -82,7 +91,7 @@ impl EventHandler for WIPRG {
     ///     * Players
     ///     * Arena
     /// 5. Re-render
-    fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
+    fn update(&mut self, ctx: &mut Context) -> GameResult {
         // Update code here...
         while ggez::timer::check_update_time(ctx, 60) {
             // TODO: useful work.
@@ -90,7 +99,7 @@ impl EventHandler for WIPRG {
         Ok(())
     }
 
-    fn draw(&mut self, ctx: &mut Context)-> GameResult<()> {
+    fn draw(&mut self, ctx: &mut Context)-> GameResult {
         graphics::clear(ctx, graphics::BLACK);
         match self.screen.draw(ctx, DrawParam::new()) {
             Ok(()) => (),

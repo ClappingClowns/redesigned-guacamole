@@ -1,5 +1,6 @@
 use ggez::{Context, GameResult};
-use ggez::graphics::{Drawable, DrawParam, Rect, BlendMode};
+use ggez::graphics::{self, Drawable, DrawParam, Rect, BlendMode, Mesh, DrawMode};
+use ggez::nalgebra as na;
 
 use crate::{physics};
 
@@ -22,8 +23,17 @@ impl physics::Collidable for Platform {
 }
 
 impl Drawable for Platform {
-    fn draw(&self, ctx: &mut Context, param: DrawParam) -> GameResult {
-        Ok(())
+    fn draw(&self, ctx: &mut Context, mut param: DrawParam) -> GameResult {
+        let rect = Rect::new(0f32, 0f32, 1.0, 1.0);
+
+        param.rotation += self.body[0].ori;
+        param.scale.x *= self.body[0].size[0];
+        param.scale.y *= self.body[0].size[1];
+        param.dest.x += self.body[0].pos[0];
+        param.dest.y += self.body[0].pos[1];
+
+        let mesh = Mesh::new_rectangle(ctx, DrawMode::fill(), rect, graphics::WHITE)?;
+        graphics::draw(ctx, &mesh, param)
     }
 
     fn dimensions(&self, _ctx: &mut Context) -> Option<Rect> {
@@ -38,4 +48,3 @@ impl Drawable for Platform {
         self.mode
     }
 }
-
