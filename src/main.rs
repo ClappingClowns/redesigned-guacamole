@@ -29,19 +29,21 @@
 //! * Support local multiplayer
 //! * Add audio
 //! Check initial game idea doc for more features!
-use ggez::{Context, ContextBuilder, GameResult};
+use ggez::{ContextBuilder};
 use ggez::conf::{WindowSetup, WindowMode};
-use ggez::event::{self, EventHandler};
-use ggez::graphics::{self, Drawable, DrawParam};
+use ggez::event;
 
-mod screens;
-mod physics;
-mod inputs;
 mod game;
+mod inputs;
 mod logging;
+mod physics;
+mod screens;
+mod settings;
+mod walpurgis;
 
 fn main() {
-    logging::setup().unwrap();
+    let settings = settings::read().expect("Failed to parse settings.");
+    logging::setup(&settings.logging).expect("Failed to setup logging.");
 
     // Make a Context and an EventLoop.
     let (mut ctx, mut event_loop) =
@@ -57,54 +59,12 @@ fn main() {
            .build()
            .unwrap();
 
-    let mut my_game = Walpurgis::new(&mut ctx);
+    // Construct a game.
+    let mut my_game = walpurgis::new(&mut ctx);
 
     // Run!
     match event::run(&mut ctx, &mut event_loop, &mut my_game) {
         Ok(_) => println!("Exited cleanly."),
         Err(e) => println!("Error occured: {}", e)
-    }
-}
-
-/// This is the global game state. We are likely going to want to have a couple of menu screens and a game screen. Thus, in Rust, it could look like so:
-struct Walpurgis {
-    // TODO: Some shared state
-    /// Screen specific state.
-    screen: screens::Screen,
-}
-impl Walpurgis {
-    /// Create a new game state, referencing the provided `ggez` `Context`.
-    pub fn new(_ctx: &mut Context) -> Self {
-        // Load/create resources here: images, fonts, sounds, etc.
-        Self {
-            screen: screens::Screen::default(),
-        }
-    }
-}
-
-impl EventHandler for Walpurgis {
-    /// This executes a tick update.
-    /// 1. Collision detection
-    /// 2. Platform/Floor Collision
-    /// 3. Input management
-    /// 4. Update components
-    ///     * Players
-    ///     * Arena
-    /// 5. Re-render
-    fn update(&mut self, ctx: &mut Context) -> GameResult {
-        // Update code here...
-        while ggez::timer::check_update_time(ctx, 60) {
-            // TODO: useful work.
-        }
-        Ok(())
-    }
-
-    fn draw(&mut self, ctx: &mut Context)-> GameResult {
-        graphics::clear(ctx, graphics::BLACK);
-        match self.screen.draw(ctx, DrawParam::new()) {
-            Ok(()) => (),
-            Err(reason) => log::error!("{}", reason),
-        };
-        graphics::present(ctx)
     }
 }

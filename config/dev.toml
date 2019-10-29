@@ -1,0 +1,6 @@
+[logging]
+level = "warn"
+file = "walpurgis.log"
+
+[assets]
+arena_dir = "data/arenas"
