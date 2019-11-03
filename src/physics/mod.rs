@@ -92,6 +92,8 @@ impl BoundingBox {
     /// A full collision check requires two calls to this with flipped parameters, so this is
     /// termed `half` a collision check.
     fn check_half_collision(&self, basis: &BoundingBox) -> bool {
+        const ORI_EPSILON: f32 = 1e-7;
+
         let rhs = self.normalized_wrt(basis);
         let lhs_bounds = basis.size;
         let rhs_bounds = rhs.bounds();
@@ -110,7 +112,19 @@ impl BoundingBox {
     /// The underlying logic is that if any edge can show a separation between the two boxes, then
     /// the two boxes do not intersect.
     fn check_collision(lhs: &BoundingBox, rhs: &BoundingBox) -> bool {
-        lhs.check_half_collision(rhs) && rhs.check_half_collision(lhs)
+        // If bounding boxes have almost the same EPSILON, only half of the check is necessary
+        // since it approximates an AABB check. The secondary check becomes a simple offset of the
+        // first check.
+        let does_not_need_secondary_check = BoundingBox::is_almost_axis_aligned(lhs, rhs);
+
+        lhs.check_half_collision(rhs) && (does_not_need_secondary_check || rhs.check_half_collision(lhs))
+    }
+
+    /// Checks if two bounding boxes are almost axis aligned. Namely, if their orientations are
+    /// almost equivalent.
+    fn is_almost_axis_aligned(lhs: &BoundingBox, rhs: &BoundingBox) -> bool {
+        const ORI_EPSILON: f32 = 1e-7;
+        (rhs.ori - lhs.ori).abs() < ORI_EPSILON
     }
 
     /// Normalize a box w.r.t. a basis.
@@ -421,7 +435,7 @@ mod cartesian_test {
         }]
     }
 
-    fn pair_matches<E> (tp1: &(E,E), tp2: &(E,E)) -> bool 
+    fn pair_matches<E> (tp1: &(E,E), tp2: &(E,E)) -> bool
     where E: Eq + Copy
     {
         (tp1 == tp2) ||
@@ -443,7 +457,6 @@ mod cartesian_test {
         for element in correct_product().iter() {
             assert!(pairs.iter().filter(|a| pair_matches(a, element)).count() == 1);
         }
-        
     }
 
     #[test]
@@ -454,7 +467,6 @@ mod cartesian_test {
         for element in correct_square().iter() {
             assert!(pairs.iter().filter(|a| pair_matches(a, element)).count() == 1);
         }
-        
     }
 
     #[test]
