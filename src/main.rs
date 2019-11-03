@@ -39,6 +39,7 @@ mod logging;
 mod physics;
 mod screens;
 mod settings;
+mod util;
 mod walpurgis;
 
 fn main() {

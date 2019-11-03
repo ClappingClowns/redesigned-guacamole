@@ -2,21 +2,21 @@ use ggez::{Context, GameResult};
 use ggez::graphics::{self, Drawable, DrawParam, Rect, BlendMode, Mesh, DrawMode};
 use ggez::nalgebra as na;
 
-use crate::{physics};
+use crate::physics::{Collidable, BoundingBox};
 
 /// Denotes a static section of the `Arena`. Implements `ggez::Drawable`.
 #[derive(Debug)]
 pub struct Platform {
     mode: Option<BlendMode>,
     /// The portion occupied by the platform.
-    body: physics::BoundingBox,
+    body: BoundingBox,
     /// If a player is allowed to move through the platform.
     can_move_through: bool,
     // TODO: Add storage for the assets' handles.
 }
 
-impl physics::Collidable for Platform {
-    fn get_hitboxes<'tick>(&'tick self) -> &'tick[physics::BoundingBox] {
+impl Collidable for Platform {
+    fn get_hitboxes<'tick>(&'tick self) -> &'tick[BoundingBox] {
         std::slice::from_ref(&self.body)
     }
     fn get_effects(&self) {}
