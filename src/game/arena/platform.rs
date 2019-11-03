@@ -1,6 +1,5 @@
 use ggez::{Context, GameResult};
 use ggez::graphics::{self, Drawable, DrawParam, Rect, BlendMode, Mesh, DrawMode};
-use ggez::nalgebra as na;
 
 use crate::physics::{Collidable, BoundingBox};
 
@@ -17,9 +16,11 @@ pub struct Platform {
 
 impl Collidable for Platform {
     fn get_hitboxes<'tick>(&'tick self) -> &'tick[BoundingBox] {
-        std::slice::from_ref(&self.body)
+        self.body.get_hitboxes()
     }
-    fn get_effects(&self) {}
+    fn get_effects(&self) {
+        self.body.get_effects()
+    }
 }
 
 impl Drawable for Platform {

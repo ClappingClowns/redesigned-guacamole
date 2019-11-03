@@ -10,6 +10,9 @@ use crate::{
 /// When object A collides with object B, both A and B should affect one another.
 pub trait Collidable {
     /// Gets the list of hitboxes comprising the person.
+    ///
+    /// TODO: Make this reflect a tree of collidables that we can narrow down in a broad and narrow
+    /// phase.
     fn get_hitboxes<'tick>(&'tick self) -> &'tick[BoundingBox];
     /// (Final interface TBD) Gets a set of effects to apply.
     fn get_effects(&self);

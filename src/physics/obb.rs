@@ -1,4 +1,5 @@
 use ggez::nalgebra as na;
+use crate::physics::Collidable;
 
 type Radians = f32;
 
@@ -120,6 +121,13 @@ impl BoundingBox {
             ori: self.ori - basis.ori,
         }
     }
+}
+impl Collidable for BoundingBox {
+    fn get_hitboxes<'tick>(&'tick self) -> &'tick[BoundingBox] {
+        std::slice::from_ref(self)
+    }
+    /// (Final interface TBD) Gets a set of effects to apply.
+    fn get_effects(&self) {}
 }
 
 #[cfg(test)]
