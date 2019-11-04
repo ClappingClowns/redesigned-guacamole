@@ -1,6 +1,8 @@
 use ggez::{Context, GameResult};
-use ggez::event::{EventHandler};
+use ggez::event::{EventHandler, KeyCode, KeyMods};
+use ggez::input::keyboard;
 use ggez::graphics::{self, Drawable, DrawParam};
+use log;
 
 use super::screens;
 
@@ -31,6 +33,18 @@ impl EventHandler for Walpurgis {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         // Update code here...
         while ggez::timer::check_update_time(ctx, 60) {
+            if keyboard::is_key_pressed(ctx, KeyCode::W) {
+                log::info!("W");
+            }
+            if keyboard::is_key_pressed(ctx, KeyCode::A) {
+                log::info!("A");
+            }
+            if keyboard::is_key_pressed(ctx, KeyCode::S) {
+                log::info!("S");
+            }
+            if keyboard::is_key_pressed(ctx, KeyCode::D) {
+                log::info!("D");
+            }
             // TODO: useful work.
         }
         Ok(())
@@ -40,5 +54,58 @@ impl EventHandler for Walpurgis {
         graphics::clear(ctx, graphics::BLACK);
         self.screen.draw(ctx, DrawParam::new())?;
         graphics::present(ctx)
+    }
+
+    fn key_down_event(&mut self, ctx: &mut Context, key: KeyCode, mods: KeyMods, repeat: bool) {
+        if repeat {
+            return;
+        }
+        match key {
+            // Quit if Shift+Ctrl+Q is pressed.
+            KeyCode::Space => {
+                if mods.contains(KeyMods::SHIFT | KeyMods::CTRL) {
+                    log::info!("Shift + CTRL (Space): Down");
+                } else if mods.intersects(KeyMods::SHIFT | KeyMods::CTRL) {
+                    log::info!("Shift or CTRL (Space): Down");
+                } else {
+                    log::info!("Space: Down");
+                }
+            }
+            KeyCode::Return => {
+                if mods.contains(KeyMods::SHIFT | KeyMods::CTRL) {
+                    log::info!("Shift + CTRL (Return): Down");
+                } else if mods.intersects(KeyMods::SHIFT | KeyMods::CTRL) {
+                    log::info!("Shift or CTRL (Return): Down");
+                } else {
+                    log::info!("Return: Down");
+                }
+            }
+            _ => (),
+        }
+    }
+
+    fn key_up_event(&mut self, ctx: &mut Context, key: KeyCode, mods: KeyMods) {
+        match key {
+            // Quit if Shift+Ctrl+Q is pressed.
+            KeyCode::Space => {
+                if mods.contains(KeyMods::SHIFT | KeyMods::CTRL) {
+                    log::info!("Shift + CTRL (Space): Release");
+                } else if mods.intersects(KeyMods::SHIFT | KeyMods::CTRL) {
+                    log::info!("Shift or CTRL (Space): Release");
+                } else {
+                    log::info!("Space: Release");
+                }
+            }
+            KeyCode::Return => {
+                if mods.contains(KeyMods::SHIFT | KeyMods::CTRL) {
+                    log::info!("Shift + CTRL (Return): Release");
+                } else if mods.intersects(KeyMods::SHIFT | KeyMods::CTRL) {
+                    log::info!("Shift or CTRL (Return): Release");
+                } else {
+                    log::info!("Return: Release");
+                }
+            }
+            _ => (),
+        }
     }
 }

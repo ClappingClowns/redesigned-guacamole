@@ -2,7 +2,7 @@ use ggez::nalgebra as na;
 
 use crate::{inputs, physics};
 
-mod meta;
+pub mod meta;
 use self::meta::*;
 
 mod stance;
@@ -51,6 +51,9 @@ impl physics::Collidable for Player {
         // TODO
         &[]
     }
-    fn get_effects(&self) {}
+    fn get_effects(&self, bb: &physics::BoundingBox) -> Vec<physics::Effect> {
+        vec![]
+    }
+    fn handle_collision(&self, collision: &physics::Collision) {}
 }
 

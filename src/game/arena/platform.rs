@@ -1,7 +1,7 @@
 use ggez::{Context, GameResult};
 use ggez::graphics::{self, Drawable, DrawParam, Rect, BlendMode, Mesh, DrawMode};
 
-use crate::physics::{Collidable, BoundingBox};
+use crate::physics::{Collidable, BoundingBox, Effect, Collision};
 
 /// Denotes a static section of the `Arena`. Implements `ggez::Drawable`.
 #[derive(Debug)]
@@ -18,9 +18,10 @@ impl Collidable for Platform {
     fn get_hitboxes<'tick>(&'tick self) -> &'tick[BoundingBox] {
         self.body.get_hitboxes()
     }
-    fn get_effects(&self) {
-        self.body.get_effects()
+    fn get_effects(&self, bb: &BoundingBox) -> Vec<Effect> {
+        vec![]
     }
+    fn handle_collision(&self, collision: &Collision) {}
 }
 
 impl Drawable for Platform {

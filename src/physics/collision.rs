@@ -4,7 +4,14 @@ use crate::{
         product as cartesian_product,
         unique_square as unique_cartesian_square,
     },
+    game::meta::Buff,
 };
+
+pub enum Effect {
+    Push(ggez::nalgebra::Vector2<f32>),
+    Damage(f32),
+    Buff(Buff),
+}
 
 /// Any object that can be collided with should implement this trait.
 /// When object A collides with object B, both A and B should affect one another.
@@ -15,7 +22,9 @@ pub trait Collidable {
     /// phase.
     fn get_hitboxes<'tick>(&'tick self) -> &'tick[BoundingBox];
     /// (Final interface TBD) Gets a set of effects to apply.
-    fn get_effects(&self);
+    fn get_effects(&self, bb: &BoundingBox) -> Vec<Effect>;
+    /// 
+    fn handle_collision(&self, collision: &Collision);
 }
 
 /// Returns the details of a collision.

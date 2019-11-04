@@ -1,5 +1,5 @@
 use ggez::nalgebra as na;
-use crate::physics::Collidable;
+use crate::physics::{Collidable, Effect, Collision};
 
 type Radians = f32;
 
@@ -127,7 +127,10 @@ impl Collidable for BoundingBox {
         std::slice::from_ref(self)
     }
     /// (Final interface TBD) Gets a set of effects to apply.
-    fn get_effects(&self) {}
+    fn get_effects(&self, bb: &BoundingBox) -> Vec<Effect> {
+        vec![]
+    }
+    fn handle_collision(&self, collision: &Collision) {}
 }
 
 #[cfg(test)]
