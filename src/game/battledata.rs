@@ -1,16 +1,12 @@
 use chrono::Duration;
 use ggez::{Context, GameResult};
 use ggez::graphics::{Drawable, DrawParam, Rect, BlendMode};
-use ron::de::from_reader;
-use std::fs::File;
 
 use super::arena::*;
 use super::player::*;
 
-/// This is the data specific to each battle. Every battle between Fighters will be played in an Arena.
-///
-/// Note that BattleData will satisfy the `ggez::Drawable` trait (requires implementing a `draw` method),
-/// meaning it will be drawable to screen. It’ll likely just draw the arena and every player to screen.
+/// The data specific to each battle.
+/// Every battle between `Player`s will be played in an `Arena`.
 #[derive(Debug)]
 pub struct BattleData {
     time_since_start: Duration,
@@ -18,13 +14,13 @@ pub struct BattleData {
     arena: Arena,
 }
 
-impl Default for BattleData {
-    fn default() -> Self {
-        BattleData {
+impl BattleData {
+    pub fn new(arena_dir: &str) -> Result<BattleData, String> {
+        Ok(BattleData {
             time_since_start: Duration::zero(),
+            arena: Arena::new(Arena::pick_first(arena_dir)?)?,
             players: vec![],
-            arena: Arena::default(),
-        }
+        })
     }
 }
 
@@ -43,24 +39,5 @@ impl Drawable for BattleData {
 
     fn blend_mode(&self) -> Option<BlendMode> {
         self.arena.blend_mode()
-    }
-}
-
-
-pub struct BattleDataBuilder {
-    pub arena_dir: String,
-    pub players: Vec<Player>,
-}
-
-impl BattleDataBuilder {
-    pub fn build(self) -> Result<BattleData, String> {
-        let f = File::open(&self.arena_dir).map_err(|err| err.to_string())?;
-        let arena: Arena = from_reader(f).map_err(|err| err.to_string())?;
-
-        Ok(BattleData {
-            time_since_start: Duration::zero(),
-            arena: arena,
-            players: self.players,
-        })
     }
 }

@@ -1,18 +1,18 @@
 use config::{Config, ConfigError, File};
-use serde::{Deserialize};
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Logging {
     pub level: String,
     pub file: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Assets {
     pub arena_dir: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Settings {
     pub logging: Logging,
     pub assets: Assets,

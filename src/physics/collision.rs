@@ -23,7 +23,6 @@ pub trait Collidable {
     fn get_hitboxes<'tick>(&'tick self) -> &'tick[BoundingBox];
     /// (Final interface TBD) Gets a set of effects to apply.
     fn get_effects(&self, bb: &BoundingBox) -> Vec<Effect>;
-    /// 
     fn handle_collision(&self, collision: &Collision);
 }
 

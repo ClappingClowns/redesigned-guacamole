@@ -42,6 +42,8 @@ mod settings;
 mod util;
 mod walpurgis;
 
+use walpurgis::Walpurgis;
+
 fn main() {
     let settings = settings::read().expect("Failed to parse settings.");
     logging::setup(&settings.logging).expect("Failed to setup logging.");
@@ -61,10 +63,10 @@ fn main() {
            .unwrap();
 
     // Construct a game.
-    let mut my_game = match walpurgis::new(&mut ctx, &settings.assets) {
+    let mut my_game = match Walpurgis::new(&mut ctx, &settings.assets) {
         Ok(game) => game,
         Err(reason) => {
-            log::error!("{}", reason);
+            log::error!("Game construction failed: {}", reason);
             return
         },
     };

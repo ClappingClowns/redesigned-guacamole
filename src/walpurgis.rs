@@ -4,26 +4,23 @@ use ggez::input::keyboard;
 use ggez::graphics::{self, Drawable, DrawParam};
 
 use super::{screens, settings};
-use super::game::BattleDataBuilder;
+use super::game::BattleData;
 
-/// This is the global game state. We are likely going to want to have a couple of menu screens and a game screen. Thus, in Rust, it could look like so:
+/// This is the global game state.
 pub struct Walpurgis {
-    // TODO: Some shared state
+    // TODO: Some shared state.
     /// Screen specific state.
     screen: screens::Screen,
 }
 
-/// Create a new game state, referencing the provided `ggez` `Context`.
-pub fn new(_ctx: &mut Context, assets: &settings::Assets) -> Result<Walpurgis, String> {
-    // Load/create resources here: images, fonts, sounds, etc.
-    let builder = BattleDataBuilder {
-        arena_dir: assets.arena_dir.clone(),
-        players: vec![]
-    };
-
-    Ok(Walpurgis {
-        screen: screens::Screen::Core(builder.build()?),
-    })
+impl Walpurgis {
+    /// Create a new game state, referencing the provided `ggez::Context`.
+    pub fn new(_ctx: &mut Context, assets: &settings::Assets) -> Result<Self, String> {
+        // Load/create resources here: images, fonts, sounds, etc.
+        Ok(Walpurgis {
+            screen: screens::Screen::Core(BattleData::new(&assets.arena_dir)?),
+        })
+    }
 }
 
 impl EventHandler for Walpurgis {

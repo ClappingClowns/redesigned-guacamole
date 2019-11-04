@@ -14,13 +14,6 @@ pub enum Screen {
     Core(BattleData),
 }
 
-impl Default for Screen {
-    fn default() -> Self {
-        // TODO: make the main menu the default.
-        Self::Core(BattleData::default())
-    }
-}
-
 impl Drawable for Screen {
     fn draw(&self, ctx: &mut Context, param: DrawParam) -> GameResult {
         match self {

@@ -1,19 +1,17 @@
 use ggez::{Context, GameResult};
 use ggez::graphics::{self, Drawable, DrawParam, Rect, BlendMode, Mesh, DrawMode};
-use serde::{Deserialize};
-
+use serde::{Serialize, Deserialize};
 
 use crate::physics::{Collidable, BoundingBox, Effect, Collision};
 
-/// Denotes a static section of the `Arena`. Implements `ggez::Drawable`.
-#[derive(Debug, Deserialize)]
+/// Denotes a collidable, static section of the `Arena`.
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Platform {
+    // `ggez`-specific. Not used for anything atm.
     #[serde(skip)]
-    mode: Option<BlendMode>,
-    /// The portion occupied by the platform.
-    body: BoundingBox,
-    /// If a player is allowed to move through the platform.
-    can_move_through: bool,
+    pub mode: Option<BlendMode>,
+    /// The space occupied by the platform.
+    pub body: BoundingBox,
     // TODO: Add storage for the assets' handles.
 }
 
