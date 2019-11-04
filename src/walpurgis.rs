@@ -1,5 +1,5 @@
 use ggez::{Context, GameResult};
-use ggez::event::{EventHandler, KeyCode, KeyMods};
+use ggez::event::{self, EventHandler, KeyCode, KeyMods};
 use ggez::input::keyboard;
 use ggez::graphics::{self, Drawable, DrawParam};
 use log;
@@ -61,7 +61,10 @@ impl EventHandler for Walpurgis {
             return;
         }
         match key {
-            // Quit if Shift+Ctrl+Q is pressed.
+            KeyCode::Escape => {
+                log::info!("Escape pressed. Stopping game loop.");
+                event::quit(ctx);
+            }
             KeyCode::Space => {
                 if mods.contains(KeyMods::SHIFT | KeyMods::CTRL) {
                     log::info!("Shift + CTRL (Space): Down");
@@ -86,7 +89,6 @@ impl EventHandler for Walpurgis {
 
     fn key_up_event(&mut self, ctx: &mut Context, key: KeyCode, mods: KeyMods) {
         match key {
-            // Quit if Shift+Ctrl+Q is pressed.
             KeyCode::Space => {
                 if mods.contains(KeyMods::SHIFT | KeyMods::CTRL) {
                     log::info!("Shift + CTRL (Space): Release");
