@@ -1,5 +1,5 @@
 use config::{Config, ConfigError, File};
-use serde::Deserialize;
+use serde::{Deserialize};
 
 #[derive(Debug, Deserialize)]
 pub struct Logging {

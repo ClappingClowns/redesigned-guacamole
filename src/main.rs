@@ -61,7 +61,13 @@ fn main() {
            .unwrap();
 
     // Construct a game.
-    let mut my_game = walpurgis::new(&mut ctx);
+    let mut my_game = match walpurgis::new(&mut ctx, &settings.assets) {
+        Ok(game) => game,
+        Err(reason) => {
+            log::error!("{}", reason);
+            return
+        },
+    };
 
     // Run!
     match event::run(&mut ctx, &mut event_loop, &mut my_game) {

@@ -9,8 +9,9 @@ edition = "2018"
 [dependencies]
 chrono = "0.4.9"
 config = "0.9.3"
-fern = { version="0.5.8", features = ["colored"] }
+fern = { version = "0.5.8", features = ["colored"] }
 ggez = "0.5.1"
+nalgebra = { version = "0.18", features = ["serde-serialize"] }
 log = "0.4.8"
 rand = "0.7.2"
 ron = "0.5.1"

@@ -1,11 +1,14 @@
 use ggez::{Context, GameResult};
 use ggez::graphics::{self, Drawable, DrawParam, Rect, BlendMode, Mesh, DrawMode};
+use serde::{Deserialize};
+
 
 use crate::physics::{Collidable, BoundingBox, Effect, Collision};
 
 /// Denotes a static section of the `Arena`. Implements `ggez::Drawable`.
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub struct Platform {
+    #[serde(skip)]
     mode: Option<BlendMode>,
     /// The portion occupied by the platform.
     body: BoundingBox,

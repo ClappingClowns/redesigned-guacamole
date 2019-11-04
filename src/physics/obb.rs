@@ -1,10 +1,12 @@
 use ggez::nalgebra as na;
+use serde::{Deserialize};
+
 use crate::physics::{Collidable, Effect, Collision};
 
 type Radians = f32;
 
 /// Denotes an `area` is being occupied.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct BoundingBox {
     /// The pos (x, h) of the bounds. +x goes up and +y goes right.
     pub pos: na::Vector2<f32>,

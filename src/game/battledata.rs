@@ -1,6 +1,8 @@
 use chrono::Duration;
 use ggez::{Context, GameResult};
 use ggez::graphics::{Drawable, DrawParam, Rect, BlendMode};
+use ron::de::from_reader;
+use std::fs::File;
 
 use super::arena::*;
 use super::player::*;
@@ -44,3 +46,21 @@ impl Drawable for BattleData {
     }
 }
 
+
+pub struct BattleDataBuilder {
+    pub arena_dir: String,
+    pub players: Vec<Player>,
+}
+
+impl BattleDataBuilder {
+    pub fn build(self) -> Result<BattleData, String> {
+        let f = File::open(&self.arena_dir).map_err(|err| err.to_string())?;
+        let arena: Arena = from_reader(f).map_err(|err| err.to_string())?;
+
+        Ok(BattleData {
+            time_since_start: Duration::zero(),
+            arena: arena,
+            players: self.players,
+        })
+    }
+}

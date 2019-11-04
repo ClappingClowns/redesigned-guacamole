@@ -1,12 +1,14 @@
 use ggez::{Context, GameResult};
 use ggez::graphics::{Drawable, DrawParam, Rect, BlendMode};
+use serde::{Deserialize};
 
 mod platform;
 use platform::*;
 
 /// Stores data for the `Arena` outside of actual players. Will satisfy the `ggez::Drawable` trait.
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub struct Arena {
+    #[serde(skip)]
     mode: Option<BlendMode>,
     // background_images: Vec<ggez::Image>,
     // soundtracks: Vec<ggez::SoundData>,
