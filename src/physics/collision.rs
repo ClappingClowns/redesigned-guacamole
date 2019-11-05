@@ -86,7 +86,10 @@ mod cartesian_collision_test {
         fn get_hitboxes<'tick>(&'tick self) -> &'tick[BoundingBox] {
             &self.boxes
         }
-        fn get_effects(&self) {}
+        fn get_effects(&self, bb: &BoundingBox) -> Vec<Effect> {
+            vec![]
+        }
+        fn handle_collision(&self, collision: &Collision) {}
     }
 
     fn box_list1() -> Vec<BoundingBox> {
