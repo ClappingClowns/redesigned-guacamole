@@ -63,7 +63,7 @@ fn main() {
            .unwrap();
 
     // Construct a game.
-    let mut my_game = match Walpurgis::new(&mut ctx, &settings.assets) {
+    let mut my_game = match Walpurgis::new(&settings.assets) {
         Ok(game) => game,
         Err(reason) => {
             log::error!("Game construction failed: {}", reason);

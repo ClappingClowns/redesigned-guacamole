@@ -1,6 +1,6 @@
-use chrono::Duration;
 use ggez::{Context, GameResult};
-use ggez::graphics::{Drawable, DrawParam, Rect, BlendMode};
+use ggez::graphics::{Drawable, DrawParam, Rect, Text, BlendMode};
+use std::time::Instant;
 
 use super::arena::*;
 use super::player::*;
@@ -9,7 +9,7 @@ use super::player::*;
 /// Every battle between `Player`s will be played in an `Arena`.
 #[derive(Debug)]
 pub struct BattleData {
-    time_since_start: Duration,
+    game_start: Instant,
     players: Vec<Player>,
     arena: Arena,
 }
@@ -17,16 +17,26 @@ pub struct BattleData {
 impl BattleData {
     pub fn new(arena_dir: &str) -> Result<BattleData, String> {
         Ok(BattleData {
-            time_since_start: Duration::zero(),
+            game_start: Instant::now(),
             arena: Arena::new(Arena::pick_first(arena_dir)?)?,
             players: vec![],
         })
+    }
+
+    fn draw_timer(&self, ctx: &mut Context, mut param: DrawParam) -> GameResult {
+        let seconds = self.game_start.elapsed().as_secs();
+        let seconds = format!("{}:{}", seconds / 60, seconds % 60);
+        let timer = Text::new(seconds);
+        param.dest.x += 400_f32;
+        timer.draw(ctx, param)
     }
 }
 
 impl Drawable for BattleData {
     fn draw(&self, ctx: &mut Context, param: DrawParam) -> GameResult {
-        self.arena.draw(ctx, param)
+        self.arena.draw(ctx, param)?;
+        self.draw_timer(ctx, param)?;
+        Ok(())
     }
 
     fn dimensions(&self, _ctx: &mut Context) -> Option<Rect> {

@@ -14,8 +14,8 @@ pub struct Walpurgis {
 }
 
 impl Walpurgis {
-    /// Create a new game state, referencing the provided `ggez::Context`.
-    pub fn new(_ctx: &mut Context, assets: &settings::Assets) -> Result<Self, String> {
+    /// Create a new game state.
+    pub fn new(assets: &settings::Assets) -> Result<Self, String> {
         // Load/create resources here: images, fonts, sounds, etc.
         Ok(Walpurgis {
             screen: screens::Screen::Core(BattleData::new(&assets.arena_dir)?),
