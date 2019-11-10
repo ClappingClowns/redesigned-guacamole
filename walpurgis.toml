@@ -3,4 +3,4 @@ level = "info"
 file = "walpurgis.log"
 
 [assets]
-arena_dir = "data/arenas"
+root = "data"

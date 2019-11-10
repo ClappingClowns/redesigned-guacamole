@@ -1,13 +1,10 @@
 use ggez::{Context, GameResult};
 use ggez::graphics::{Drawable, DrawParam, Rect, BlendMode};
-use ggez::nalgebra as na;
 use ron::de::from_reader;
 use serde::{Serialize, Deserialize};
-use std::fs::{self, DirEntry, File};
-use std::io;
+use std::fs::{self, File};
 use std::path::Path;
 
-use crate::physics::BoundingBox;
 use crate::util::string::stringify;
 
 mod platform;
@@ -27,17 +24,22 @@ pub struct Arena {
 }
 
 impl Arena {
-    /// Returns the first arena file in the arena directory.
-    pub fn pick_first<P: AsRef<Path>>(arena_dir: P) -> Result<String, String> {
+    // TODO: remove this once we don't need it anymore
+    /// Load the first arena in the arena directory.
+    pub fn load_first<P: AsRef<Path>>(arena_dir: P) -> Result<Self, String> {
+        let arena_dir = arena_dir.as_ref();
+        log::info!("Loading first arena from assets directory: `{}`", arena_dir.display());
+
         // Really should be using the `glob` crate but don't want to
         // introduce an extra dependency just for this.
-        let paths = fs::read_dir(arena_dir).map_err(stringify)?
-            .collect::<Result<Vec<DirEntry>, io::Error>>()
+        let opt_arena_file = fs::read_dir(arena_dir)
+            .and_then(|mut entries| entries.next().transpose())
             .map_err(stringify)?;
 
-        match paths[0].path().to_str() {
-            Some(path) => Ok(path.to_string()),
-            None => Err(format!("No arena found in the arena directory."))
+        if let Some(arena_file) = opt_arena_file {
+            Arena::new(arena_file.path())
+        } else {
+            Err(format!("No arena file found in the directory `{}`.", arena_dir.display()))
         }
     }
 

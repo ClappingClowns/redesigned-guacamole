@@ -45,8 +45,18 @@ mod walpurgis;
 use walpurgis::Walpurgis;
 
 fn main() {
-    let settings = settings::read().expect("Failed to parse settings.");
+    let settings = settings::load().expect("Failed to parse settings.");
     logging::setup(&settings.logging).expect("Failed to setup logging.");
+    log::debug!("{:?}", settings);
+
+    // Construct a game.
+    let mut my_game = match Walpurgis::new(&settings.assets) {
+        Ok(game) => game,
+        Err(reason) => {
+            log::error!("Game construction failed: {}", reason);
+            return
+        },
+    };
 
     // Make a Context and an EventLoop.
     let (mut ctx, mut event_loop) =
@@ -61,15 +71,6 @@ fn main() {
             })
            .build()
            .unwrap();
-
-    // Construct a game.
-    let mut my_game = match Walpurgis::new(&settings.assets) {
-        Ok(game) => game,
-        Err(reason) => {
-            log::error!("Game construction failed: {}", reason);
-            return
-        },
-    };
 
     // Run!
     match event::run(&mut ctx, &mut event_loop, &mut my_game) {

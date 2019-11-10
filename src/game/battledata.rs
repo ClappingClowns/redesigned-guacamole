@@ -1,6 +1,7 @@
 use ggez::{Context, GameResult};
 use ggez::graphics::{Drawable, DrawParam, Rect, Text, BlendMode};
 use std::time::Instant;
+use std::path::Path;
 
 use super::arena::*;
 use super::player::*;
@@ -15,17 +16,25 @@ pub struct BattleData {
 }
 
 impl BattleData {
-    pub fn new(arena_dir: &str) -> Result<BattleData, String> {
+    // TODO: remove this once we don't need it anymore
+    pub fn load_first_arena<P: AsRef<Path>>(asset_dir: P) -> Result<BattleData, String> {
+        let asset_dir = asset_dir.as_ref();
+        log::info!("Loading first arena from assets directory: `{}`", asset_dir.display());
+
+        let arena_dir = asset_dir.join("arenas");
         Ok(BattleData {
             game_start: Instant::now(),
-            arena: Arena::new(Arena::pick_first(arena_dir)?)?,
+            arena: Arena::load_first(arena_dir)?,
             players: vec![],
         })
     }
+}
 
+// Helpers for drawing.
+impl BattleData {
     fn draw_timer(&self, ctx: &mut Context, mut param: DrawParam) -> GameResult {
         let seconds = self.game_start.elapsed().as_secs();
-        let seconds = format!("{}:{}", seconds / 60, seconds % 60);
+        let seconds = format!("{:0>2}:{:0>2}", seconds / 60, seconds % 60);
         let timer = Text::new(seconds);
         param.dest.x += 400_f32;
         timer.draw(ctx, param)

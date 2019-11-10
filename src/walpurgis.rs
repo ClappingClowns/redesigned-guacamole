@@ -18,7 +18,7 @@ impl Walpurgis {
     pub fn new(assets: &settings::Assets) -> Result<Self, String> {
         // Load/create resources here: images, fonts, sounds, etc.
         Ok(Walpurgis {
-            screen: screens::Screen::Core(BattleData::new(&assets.arena_dir)?),
+            screen: screens::Screen::Core(BattleData::load_first_arena(&assets.root)?),
         })
     }
 }
@@ -89,7 +89,7 @@ impl EventHandler for Walpurgis {
         }
     }
 
-    fn key_up_event(&mut self, ctx: &mut Context, key: KeyCode, mods: KeyMods) {
+    fn key_up_event(&mut self, _ctx: &mut Context, key: KeyCode, mods: KeyMods) {
         match key {
             KeyCode::Space => {
                 if mods.contains(KeyMods::SHIFT | KeyMods::CTRL) {
