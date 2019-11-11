@@ -1,3 +1,5 @@
+use ggez::nalgebra as na;
+
 use crate::{
     physics::obb::BoundingBox,
     util::cartesian::{
@@ -24,6 +26,8 @@ pub trait Collidable {
     /// (Final interface TBD) Gets a set of effects to apply.
     fn get_effects(&self, bb: &BoundingBox) -> Vec<Effect>;
     fn handle_collision(&self, collision: &Collision);
+
+    fn get_offset(&self) -> na::Vector2<f32>;
 }
 
 /// Returns the details of a collision.
@@ -51,13 +55,25 @@ fn transpose<T, S>(((t0, s0), (t1, s1)): ((T, S), (T, S))) -> ((T, T), (S, S)) {
     ((t0, t1), (s0, s1))
 }
 /// Check for hit box collisions between two `IntoIterator`s of `BoundingBox`es.
-fn check_for_hb_collisions<'a, I, II>((hb0, hb1): (II, II)) -> Vec<(&'a BoundingBox, &'a BoundingBox)>
+fn check_for_hb_collisions<'a, I, II>(offset_first: bool, offset: na::Vector2<f32>, (hb0, hb1): (II, II)) -> Vec<(&'a BoundingBox, &'a BoundingBox)>
 where
     I: std::iter::Iterator<Item = &'a BoundingBox> + std::clone::Clone,
     II: std::iter::IntoIterator<Item = &'a BoundingBox, IntoIter = I>,
 {
+    let EPSILON: f32 = 1e-14;
+    if offset.norm_squared() < EPSILON {
+        return cartesian_product(hb0, hb1)
+            .filter(|(hb0, hb1)| BoundingBox::check_collision(hb0, hb1))
+            .collect();
+    }
+    let (hb0, hb1) = if offset_first { (hb1, hb0) } else { (hb0, hb1) };
+    let hb1 = hb1.into_iter().map(|bb| (bb, BoundingBox {
+        pos: bb.pos + offset,
+        ..*bb
+    }));
     cartesian_product(hb0, hb1)
-        .filter(|(hb0, hb1)| BoundingBox::check_collision(hb0, hb1))
+        .filter(|(hb0, (_, offset_hb1))| BoundingBox::check_collision(hb0, offset_hb1))
+        .map(|(hb0, (hb1, _))| if offset_first { (hb0, hb1) } else { (hb0, hb1) })
         .collect()
 }
 /// Check for collisions within a slice of [`Collidable`]s
@@ -68,7 +84,15 @@ pub fn check_for_collisions<'tick>(entities: &[&'tick dyn Collidable]) -> Vec<Co
         .collect();
     unique_cartesian_square(entity_with_hitboxes)
         .map(transpose)
-        .map(|(e_pair, hb_pair)| (e_pair, check_for_hb_collisions(hb_pair)))
+        .map(|(e_pair @ (e0, e1), hb_pair @ (hb0, hb1))| {
+            let should_offset_first = hb1.len() > hb0.len();
+            let offset = if hb0.len() < hb1.len() {
+                e1.get_offset() - e0.get_offset()
+            } else {
+                e0.get_offset() - e1.get_offset()
+            };
+            (e_pair, check_for_hb_collisions(should_offset_first, offset, hb_pair))
+        })
         .filter(|(_, hb_collisions): &(_, Vec<_>)| !hb_collisions.is_empty())
         .map(Collision::from)
         .collect()
