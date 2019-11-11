@@ -5,7 +5,7 @@ use serde::{Serialize, Deserialize};
 use std::fs::{self, File};
 use std::path::Path;
 
-use crate::util::string::stringify;
+use crate::util::result::WalpurgisResult;
 
 mod platform;
 use platform::*;
@@ -26,27 +26,26 @@ pub struct Arena {
 impl Arena {
     // TODO: remove this once we don't need it anymore
     /// Load the first arena in the arena directory.
-    pub fn load_first<P: AsRef<Path>>(arena_dir: P) -> Result<Self, String> {
+    pub fn load_first<P: AsRef<Path>>(arena_dir: P) -> WalpurgisResult<Self> {
         let arena_dir = arena_dir.as_ref();
         log::info!("Loading first arena from assets directory: `{}`", arena_dir.display());
 
         // Really should be using the `glob` crate but don't want to
         // introduce an extra dependency just for this.
         let opt_arena_file = fs::read_dir(arena_dir)
-            .and_then(|mut entries| entries.next().transpose())
-            .map_err(stringify)?;
+            .and_then(|mut entries| entries.next().transpose())?;
 
         if let Some(arena_file) = opt_arena_file {
-            Arena::new(arena_file.path())
+            Arena::load(arena_file.path())
         } else {
-            Err(format!("No arena file found in the directory `{}`.", arena_dir.display()))
+            Err(format!("No arena file found in the directory `{}`.", arena_dir.display()))?
         }
     }
 
-    /// Tries to construct a new `Arena` from the given file.
-    pub fn new<P: AsRef<Path>>(arena_file: P) -> Result<Self, String> {
-        let f = File::open(arena_file).map_err(stringify)?;
-        from_reader(f).map_err(stringify)
+    /// Tries to load an `Arena` from the given file.
+    pub fn load<P: AsRef<Path>>(arena_file: P) -> WalpurgisResult<Self> {
+        let f = File::open(arena_file)?;
+        Ok(from_reader(f)?)
     }
 }
 

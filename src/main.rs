@@ -49,15 +49,6 @@ fn main() {
     logging::setup(&settings.logging).expect("Failed to setup logging.");
     log::debug!("{:?}", settings);
 
-    // Construct a game.
-    let mut my_game = match Walpurgis::new(&settings.assets) {
-        Ok(game) => game,
-        Err(reason) => {
-            log::error!("Game construction failed: {}", reason);
-            return
-        },
-    };
-
     // Make a Context and an EventLoop.
     let (mut ctx, mut event_loop) =
        ContextBuilder::new("Walpurgis", "clapping-clowns")
@@ -71,6 +62,15 @@ fn main() {
             })
            .build()
            .unwrap();
+
+     // Construct a game.
+     let mut my_game = match Walpurgis::new(&mut ctx, &settings.assets) {
+        Ok(game) => game,
+        Err(reason) => {
+            log::error!("Game construction failed: {}", reason.0);
+            return
+        },
+    };
 
     // Run!
     match event::run(&mut ctx, &mut event_loop, &mut my_game) {

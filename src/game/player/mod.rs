@@ -1,6 +1,8 @@
+use ggez::{Context, GameResult};
+use ggez::graphics::{Image, Drawable, DrawParam, Rect, BlendMode};
 use ggez::nalgebra as na;
 
-use crate::{inputs, physics};
+use crate::{inputs, physics, util::result::WalpurgisResult};
 
 pub mod meta;
 use self::meta::*;
@@ -16,8 +18,11 @@ pub type FrameNumber = u8;
 
 #[derive(Debug)]
 pub struct Player {
+    /// `ggez`-specific. Not really used for anything atm.
+    mode: Option<BlendMode>,
+
     /// The sprites for animating the character.
-    sprites: Vec</*Sprite*/()>,
+    sprites: Vec<Image>,
     /// The sounds made by the character.
     sfx: Vec</*SoundData*/()>,
 
@@ -46,6 +51,41 @@ pub struct Player {
     inputs: inputs::InputScheme,
 }
 
+/// A `Player` to be used for testing.
+pub fn test_player(ctx: &mut Context) -> WalpurgisResult<Player> {
+    let torso = Image::from_rgba8(
+        ctx, 1 /* width */, 2 /* height */,
+        &[
+            255, 0, 0, 0,
+            0, 255, 0, 0,
+        ]
+    )?;
+
+    Ok(Player {
+        mode: None,
+        sprites: vec![
+            torso,
+        ],
+        sfx: vec![],
+
+        position: na::Vector2::new(5_f32, 5_f32),
+        velocity: na::Vector2::new(0_f32, 0_f32),
+        acceleration: na::Vector2::new(0_f32, 0_f32),
+
+        buff: vec![],
+        stance: (
+            VerticalStance::OnGround(GroundStance::Standing),
+            HorizontalStance::Left,
+        ),
+        movement: (Action::Idle, 0),
+
+        race: Race::Alien,
+        stats: Stats {},
+        abilities: vec![],
+        inputs: inputs::InputScheme {},
+    })
+}
+
 impl physics::Collidable for Player {
     fn get_hitboxes<'tick>(&'tick self) -> &'tick[physics::BoundingBox] {
         // TODO
@@ -57,3 +97,21 @@ impl physics::Collidable for Player {
     fn handle_collision(&self, collision: &physics::Collision) {}
 }
 
+
+impl Drawable for Player {
+    fn draw(&self, ctx: &mut Context, param: DrawParam) -> GameResult {
+        Ok(())
+    }
+
+    fn dimensions(&self, _ctx: &mut Context) -> Option<Rect> {
+        None
+    }
+
+    fn set_blend_mode(&mut self, mode: Option<BlendMode>) {
+        self.mode = mode;
+    }
+
+    fn blend_mode(&self) -> Option<BlendMode> {
+        self.mode
+    }
+}

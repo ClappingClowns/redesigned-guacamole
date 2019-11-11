@@ -1,2 +1,2 @@
 pub mod cartesian;
-pub mod string;
+pub mod result;
