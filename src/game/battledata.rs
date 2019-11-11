@@ -45,10 +45,10 @@ impl BattleData {
 
 impl Drawable for BattleData {
     fn draw(&self, ctx: &mut Context, param: DrawParam) -> GameResult {
+        self.arena.draw(ctx, param)?;
         for player in &self.players {
             player.draw(ctx, param)?;
         }
-        self.arena.draw(ctx, param)?;
         self.draw_timer(ctx, param)?;
         Ok(())
     }

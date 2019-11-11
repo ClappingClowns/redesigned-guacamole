@@ -1,3 +1,5 @@
+use ggez::{Context, GameResult};
+use ggez::graphics::{self, Drawable, DrawParam, Rect, BlendMode, Mesh, DrawMode};
 use ggez::nalgebra as na;
 use serde::{Serialize, Deserialize};
 
@@ -8,6 +10,9 @@ type Radians = f32;
 /// Denotes an `area` is being occupied.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BoundingBox {
+    /// `ggez`-specific. Not used for anything atm.
+    #[serde(skip)]
+    pub mode: Option<BlendMode>,
     /// The pos (x, h) of the bounds. +x goes up and +y goes right.
     pub pos: na::Vector2<f32>,
     /// The size (w, h) of the bounds.
@@ -118,6 +123,7 @@ impl BoundingBox {
     /// Normalize a box w.r.t. a basis.
     fn normalized_wrt(&self, basis: &Self) -> Self {
         Self {
+            mode: None,
             pos: Self::rotate(self.pos - basis.pos, self.ori - basis.ori),
             size: self.size,
             ori: self.ori - basis.ori,
@@ -135,6 +141,32 @@ impl Collidable for BoundingBox {
     fn handle_collision(&self, collision: &Collision) {}
 }
 
+
+impl Drawable for BoundingBox {
+    fn draw(&self, ctx: &mut Context, mut param: DrawParam) -> GameResult {
+        let rect = Rect::new(0f32, 0f32, 1.0, 1.0);
+        param.rotation += self.ori;
+        param.scale.x *= self.size[0];
+        param.scale.y *= self.size[1];
+        param.dest.x += self.pos[0];
+        param.dest.y += self.pos[1];
+        let mesh = Mesh::new_rectangle(ctx, DrawMode::fill(), rect, graphics::WHITE)?;
+        graphics::draw(ctx, &mesh, param)
+    }
+
+    fn dimensions(&self, _ctx: &mut Context) -> Option<Rect> {
+        None
+    }
+
+    fn set_blend_mode(&mut self, mode: Option<BlendMode>) {
+        self.mode = mode;
+    }
+
+    fn blend_mode(&self) -> Option<BlendMode> {
+        self.mode
+    }
+}
+
 #[cfg(test)]
 mod obb_test {
     use super::*;
@@ -146,6 +178,7 @@ mod obb_test {
     }
     fn build_bounding() -> BoundingBox {
         BoundingBox {
+            mode: None,
             pos: V2::new(1., 2.),
             size: V2::new(3., 4.),
             ori: std::f32::consts::PI / 2.,
@@ -196,10 +229,12 @@ mod obb_test {
 
     fn colliding_boxes() -> (BoundingBox, BoundingBox) {
         (BoundingBox {
+            mode: None,
             pos: V2::zeros(),
             size: V2::new(1., 1.),
             ori: 0.,
         }, BoundingBox {
+            mode: None,
             pos: V2::zeros(),
             size: V2::new(1., 1.),
             ori: 0.,
@@ -207,10 +242,12 @@ mod obb_test {
     }
     fn separate_boxes() -> (BoundingBox, BoundingBox)  {
         (BoundingBox {
+            mode: None,
             pos: V2::zeros(),
             size: V2::new(1., 1.),
             ori: 0.,
         }, BoundingBox {
+            mode: None,
             pos: V2::new(-0.1, -0.1),
             size: V2::new(1., 1.),
             ori: std::f32::consts::PI,
@@ -218,10 +255,12 @@ mod obb_test {
     }
     fn pathological_separate_boxes() -> (BoundingBox, BoundingBox) {
         (BoundingBox {
+            mode: None,
             pos: V2::zeros(),
             size: V2::new(1., 1.),
             ori: 0.,
         }, BoundingBox {
+            mode: None,
             pos: V2::new(1.5, 0.5),
             size: V2::new(5., 0.5),
             ori: std::f32::consts::PI / 4.,

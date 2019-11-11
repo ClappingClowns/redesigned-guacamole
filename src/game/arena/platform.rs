@@ -7,7 +7,7 @@ use crate::physics::{Collidable, BoundingBox, Effect, Collision};
 /// Denotes a collidable, static section of the `Arena`.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Platform {
-    // `ggez`-specific. Not used for anything atm.
+    /// `ggez`-specific. Not used for anything atm.
     #[serde(skip)]
     pub mode: Option<BlendMode>,
     /// The space occupied by the platform.
@@ -26,18 +26,8 @@ impl Collidable for Platform {
 }
 
 impl Drawable for Platform {
-    fn draw(&self, ctx: &mut Context, mut param: DrawParam) -> GameResult {
-        let rect = Rect::new(0f32, 0f32, 1.0, 1.0);
-
-        let body = &self.body;
-        param.rotation += body.ori;
-        param.scale.x *= body.size[0];
-        param.scale.y *= body.size[1];
-        param.dest.x += body.pos[0];
-        param.dest.y += body.pos[1];
-
-        let mesh = Mesh::new_rectangle(ctx, DrawMode::fill(), rect, graphics::WHITE)?;
-        graphics::draw(ctx, &mesh, param)
+    fn draw(&self, ctx: &mut Context, param: DrawParam) -> GameResult {
+        self.body.draw(ctx, param)
     }
 
     fn dimensions(&self, _ctx: &mut Context) -> Option<Rect> {

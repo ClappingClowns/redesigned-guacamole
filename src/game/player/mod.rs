@@ -26,6 +26,8 @@ pub struct Player {
     /// The sounds made by the character.
     sfx: Vec</*SoundData*/()>,
 
+    bboxes: Vec<physics::BoundingBox>,
+
     /// The position of the character.
     position: na::Vector2<f32>,
     /// The velocity of the character.
@@ -60,6 +62,14 @@ pub fn test_player(ctx: &mut Context) -> WalpurgisResult<Player> {
             0, 255, 0, 0,
         ]
     )?;
+    let bboxes = vec![
+        physics::BoundingBox {
+            mode: None,
+            pos: na::Vector2::new(100_f32, 470_f32),
+            size: na::Vector2::new(30_f32, 30_f32),
+            ori: 0_f32,
+        },
+    ];
 
     Ok(Player {
         mode: None,
@@ -71,6 +81,7 @@ pub fn test_player(ctx: &mut Context) -> WalpurgisResult<Player> {
         position: na::Vector2::new(5_f32, 5_f32),
         velocity: na::Vector2::new(0_f32, 0_f32),
         acceleration: na::Vector2::new(0_f32, 0_f32),
+        bboxes,
 
         buff: vec![],
         stance: (
@@ -99,7 +110,11 @@ impl physics::Collidable for Player {
 
 
 impl Drawable for Player {
-    fn draw(&self, ctx: &mut Context, param: DrawParam) -> GameResult {
+    fn draw(&self, ctx: &mut Context, mut param: DrawParam) -> GameResult {
+        param.color = ggez::graphics::Color::from_rgba(255, 0, 0, 130);
+        for bbox in &self.bboxes {
+            bbox.draw(ctx, param)?;
+        }
         Ok(())
     }
 

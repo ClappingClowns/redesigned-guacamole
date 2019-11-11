@@ -94,10 +94,12 @@ mod cartesian_collision_test {
 
     fn box_list1() -> Vec<BoundingBox> {
         vec![BoundingBox {
+            mode: None,
             pos: V2::zeros(),
             size: V2::new(1., 1.),
             ori: 0.,
         }, BoundingBox {
+            mode: None,
             pos: V2::new(1.5, 0.),
             size: V2::new(1., 1.),
             ori: 0.,
@@ -105,10 +107,12 @@ mod cartesian_collision_test {
     }
     fn box_list2() -> Vec<BoundingBox> {
         vec![BoundingBox {
+            mode: None,
             pos: V2::new(-50.1, -50.1),
             size: V2::new(1., 1.),
             ori: 0.,
         }, BoundingBox {
+            mode: None,
             pos: V2::new(1.25, 0.),
             size: V2::new(1., 1.),
             ori: std::f32::consts::PI/4.,
@@ -116,10 +120,12 @@ mod cartesian_collision_test {
     }
     fn box_list3() -> Vec<BoundingBox> {
         vec![BoundingBox {
+            mode: None,
             pos: V2::new(50.1, 50.1),
             size: V2::new(1., 1.),
             ori: 0.,
         }, BoundingBox {
+            mode: None,
             pos: V2::new(51.25, 50.),
             size: V2::new(1., 1.),
             ori: std::f32::consts::PI/4.,
