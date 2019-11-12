@@ -67,7 +67,7 @@ fn main() {
      let mut my_game = match Walpurgis::new(&mut ctx, &settings.assets) {
         Ok(game) => game,
         Err(reason) => {
-            log::error!("Game construction failed: {}", reason.0);
+            log::error!("Game construction failed: {:?}", reason);
             return
         },
     };
