@@ -20,6 +20,7 @@ pub struct BoundingBox {
     /// Orientation, i.e. radians to rotate the box in the counterclockwise directions.
     pub ori: Radians,
 }
+
 impl BoundingBox {
     /// Rotates a point counterclockwise.
     fn rotate(point: na::Vector2<f32>, ori: Radians) -> na::Vector2<f32> {
@@ -130,6 +131,7 @@ impl BoundingBox {
         }
     }
 }
+
 impl Collidable for BoundingBox {
     fn get_hitboxes<'tick>(&'tick self) -> &'tick[BoundingBox] {
         std::slice::from_ref(self)
@@ -140,7 +142,6 @@ impl Collidable for BoundingBox {
     }
     fn handle_collision(&self, collision: &Collision) {}
 }
-
 
 impl Drawable for BoundingBox {
     fn draw(&self, ctx: &mut Context, mut param: DrawParam) -> GameResult {
