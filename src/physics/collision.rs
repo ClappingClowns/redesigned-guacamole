@@ -95,9 +95,9 @@ pub fn check_for_collisions<'tick>(entities: &[&'tick dyn Collidable]) -> Vec<Co
             // first vs the second.
             let should_offset_second = hb_pair.0.len() > hb_pair.1.len();
             let offset = if should_offset_second {
-                e_pair.0.get_offset() - e_pair.1.get_offset()
-            } else {
                 e_pair.1.get_offset() - e_pair.0.get_offset()
+            } else {
+                e_pair.0.get_offset() - e_pair.1.get_offset()
             };
             (e_pair, check_for_hb_collisions(should_offset_second, offset, hb_pair))
         })
