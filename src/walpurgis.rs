@@ -1,9 +1,9 @@
 use ggez::{Context, GameResult};
 use ggez::event::{self, EventHandler, KeyCode, KeyMods};
-use ggez::input::keyboard;
 use ggez::graphics::{self, Drawable, DrawParam};
 
 use crate::{screens, settings};
+use crate::inputs::{HandleInput, Input};
 use crate::game::BattleData;
 use crate::util::result::WalpurgisResult;
 
@@ -12,6 +12,7 @@ pub struct Walpurgis {
     // TODO: Some shared state.
     /// Screen specific state.
     screen: screens::Screen,
+    fire_once_key_buffer: Vec<Input>,
 }
 
 impl Walpurgis {
@@ -20,6 +21,7 @@ impl Walpurgis {
         // Load/create resources here: images, fonts, sounds, etc.
         Ok(Walpurgis {
             screen: screens::Screen::Core(BattleData::load_first_arena_and_test_player(ctx, &assets.root)?),
+            fire_once_key_buffer: vec![],
         })
     }
 }
@@ -34,21 +36,9 @@ impl EventHandler for Walpurgis {
     ///     * Arena
     /// 5. Re-render
     fn update(&mut self, ctx: &mut Context) -> GameResult {
-        // Update code here...
         while ggez::timer::check_update_time(ctx, 60) {
-            if keyboard::is_key_pressed(ctx, KeyCode::W) {
-                log::info!("W");
-            }
-            if keyboard::is_key_pressed(ctx, KeyCode::A) {
-                log::info!("A");
-            }
-            if keyboard::is_key_pressed(ctx, KeyCode::S) {
-                log::info!("S");
-            }
-            if keyboard::is_key_pressed(ctx, KeyCode::D) {
-                log::info!("D");
-            }
-            // TODO: useful work.
+            self.screen.handle_input(ctx, &self.fire_once_key_buffer);
+            self.fire_once_key_buffer.clear();
         }
         Ok(())
     }
@@ -68,47 +58,8 @@ impl EventHandler for Walpurgis {
                 log::info!("Escape pressed. Stopping game loop.");
                 event::quit(ctx);
             }
-            KeyCode::Space => {
-                if mods.contains(KeyMods::SHIFT | KeyMods::CTRL) {
-                    log::info!("Shift + CTRL (Space): Down");
-                } else if mods.intersects(KeyMods::SHIFT | KeyMods::CTRL) {
-                    log::info!("Shift or CTRL (Space): Down");
-                } else {
-                    log::info!("Space: Down");
-                }
-            }
-            KeyCode::Return => {
-                if mods.contains(KeyMods::SHIFT | KeyMods::CTRL) {
-                    log::info!("Shift + CTRL (Return): Down");
-                } else if mods.intersects(KeyMods::SHIFT | KeyMods::CTRL) {
-                    log::info!("Shift or CTRL (Return): Down");
-                } else {
-                    log::info!("Return: Down");
-                }
-            }
-            _ => (),
-        }
-    }
-
-    fn key_up_event(&mut self, _ctx: &mut Context, key: KeyCode, mods: KeyMods) {
-        match key {
-            KeyCode::Space => {
-                if mods.contains(KeyMods::SHIFT | KeyMods::CTRL) {
-                    log::info!("Shift + CTRL (Space): Release");
-                } else if mods.intersects(KeyMods::SHIFT | KeyMods::CTRL) {
-                    log::info!("Shift or CTRL (Space): Release");
-                } else {
-                    log::info!("Space: Release");
-                }
-            }
-            KeyCode::Return => {
-                if mods.contains(KeyMods::SHIFT | KeyMods::CTRL) {
-                    log::info!("Shift + CTRL (Return): Release");
-                } else if mods.intersects(KeyMods::SHIFT | KeyMods::CTRL) {
-                    log::info!("Shift or CTRL (Return): Release");
-                } else {
-                    log::info!("Return: Release");
-                }
+            key => {
+                self.fire_once_key_buffer.push((key, mods));
             }
             _ => (),
         }

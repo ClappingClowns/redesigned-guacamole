@@ -6,6 +6,7 @@ use std::path::Path;
 use super::arena::*;
 use super::player::*;
 
+use crate::inputs::{HandleInput, Input};
 use crate::util::result::WalpurgisResult;
 
 /// The data specific to each battle.
@@ -29,6 +30,14 @@ impl BattleData {
             arena: Arena::load_first(arena_dir)?,
             players: vec![test_player(ctx)?],
         })
+    }
+}
+
+impl HandleInput for BattleData {
+    fn handle_input(&mut self, ctx: &mut Context, fire_once_key_buffer: &Vec<Input>) {
+        for player in &mut self.players {
+            player.handle_input(ctx, fire_once_key_buffer);
+        }
     }
 }
 

@@ -1,11 +1,12 @@
 use super::meta::*;
+use super::stance::HorizontalStance;
 
 /// Actions available for the player to take.
 #[derive(Debug)]
 pub enum Action {
     Idle,
-    Walk,
-    Dash,
+    Walk(HorizontalStance),
+    Dash(HorizontalStance),
     Jump,
     Attack(Attack),
 }

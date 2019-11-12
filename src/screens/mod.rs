@@ -2,9 +2,8 @@
 use ggez::{Context, GameResult};
 use ggez::graphics::{Drawable, DrawParam, Rect, BlendMode};
 
-use crate::{
-    game::{BattleData},
-};
+use crate::game::{BattleData};
+use crate::inputs::{HandleInput, Input};
 
 /// Enum denoting the state of a particular screen. Will implement the `ggez::Drawable` trait.
 #[derive(Debug)]
@@ -12,6 +11,14 @@ pub enum Screen {
     // TODO: add more screens.
     /// The state for the core gameplay screen/loop.
     Core(BattleData),
+}
+
+impl HandleInput for Screen {
+    fn handle_input(&mut self, ctx: &mut Context, fire_once_key_buffer: &Vec<Input>) {
+        match self {
+            Self::Core(battle_data) => battle_data.handle_input(ctx, fire_once_key_buffer),
+        }
+    }
 }
 
 impl Drawable for Screen {

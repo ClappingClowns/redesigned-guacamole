@@ -1,8 +1,15 @@
 use ggez::{Context, GameResult};
+use ggez::input::keyboard;
+use ggez::event::{KeyCode};
 use ggez::graphics::{Image, Drawable, DrawParam, Rect, BlendMode};
 use ggez::nalgebra as na;
 
-use crate::{inputs, physics, util::result::WalpurgisResult};
+use crate::inputs::{HandleInput, Input};
+use crate::physics;
+use crate::util::result::WalpurgisResult;
+
+pub mod inputs;
+use self::inputs::{InputScheme};
 
 pub mod meta;
 use self::meta::*;
@@ -50,56 +57,36 @@ pub struct Player {
     /// The selected `Ability`s of the player character.
     abilities: Vec<Ability>,
     /// The input options allowed for a player.
-    inputs: inputs::InputScheme,
+    inputs: InputScheme,
 }
 
-/// A `Player` to be used for testing.
-pub fn test_player(ctx: &mut Context) -> WalpurgisResult<Player> {
-    let torso = Image::from_rgba8(
-        ctx, 1 /* width */, 2 /* height */,
-        &[
-            255, 0, 0, 0,
-            0, 255, 0, 0,
-        ]
-    )?;
-    let bboxes = vec![
-        physics::BoundingBox {
-            mode: None,
-            pos: na::Vector2::new(100_f32, 470_f32),
-            size: na::Vector2::new(30_f32, 30_f32),
-            ori: 0_f32,
-        },
-    ];
-
-    Ok(Player {
-        mode: None,
-        sprites: vec![
-            torso,
-        ],
-        sfx: vec![],
-
-        position: na::Vector2::new(5_f32, 5_f32),
-        velocity: na::Vector2::new(0_f32, 0_f32),
-        acceleration: na::Vector2::new(0_f32, 0_f32),
-        bboxes,
-
-        buff: vec![],
-        stance: (
-            VerticalStance::OnGround(GroundStance::Standing),
-            HorizontalStance::Left,
-        ),
-        movement: (Action::Idle, 0),
-
-        race: Race::Alien,
-        stats: Stats {},
-        abilities: vec![],
-        inputs: inputs::InputScheme {},
-    })
+impl HandleInput for Player {
+    fn handle_input(&mut self, ctx: &mut Context, fire_once_key_buffer: &Vec<Input>) {
+        let actions = self.inputs.get_possible_actions(ctx, fire_once_key_buffer);
+        for action in actions {
+            match action {
+                Action::Walk(HorizontalStance::Left) => {
+                    if let VerticalStance::OnGround(_) = self.stance.0 {
+                        log::info!("Walking left");
+                        self.stance.1 = HorizontalStance::Left;
+                        self.position[0] -= 2_f32;
+                    }
+                },
+                Action::Walk(HorizontalStance::Right) => {
+                    if let VerticalStance::OnGround(_) = self.stance.0 {
+                        log::info!("Walking right");
+                        self.stance.1 = HorizontalStance::Right;
+                        self.position[0] += 2_f32;
+                    }
+                },
+                _ => (),
+            }
+        }
+    }
 }
 
 impl physics::Collidable for Player {
     fn get_hitboxes<'tick>(&'tick self) -> &'tick[physics::BoundingBox] {
-        // TODO
         &[]
     }
     fn get_effects(&self, bb: &physics::BoundingBox) -> Vec<physics::Effect> {
@@ -110,10 +97,13 @@ impl physics::Collidable for Player {
 
 
 impl Drawable for Player {
-    fn draw(&self, ctx: &mut Context, mut param: DrawParam) -> GameResult {
-        param.color = ggez::graphics::Color::from_rgba(255, 0, 0, 130);
+    fn draw(&self, ctx: &mut Context, param: DrawParam) -> GameResult {
         for bbox in &self.bboxes {
-            bbox.draw(ctx, param)?;
+            let mut box_param = param;
+            box_param.color = ggez::graphics::Color::from_rgba(255, 0, 0, 130);
+            box_param.dest.x += self.position[0];
+            box_param.dest.y += self.position[1];
+            bbox.draw(ctx, box_param)?;
         }
         Ok(())
     }
@@ -129,4 +119,48 @@ impl Drawable for Player {
     fn blend_mode(&self) -> Option<BlendMode> {
         self.mode
     }
+}
+
+/// A `Player` to be used for testing.
+pub fn test_player(ctx: &mut Context) -> WalpurgisResult<Player> {
+    let torso = Image::from_rgba8(
+        ctx, 1 /* width */, 2 /* height */,
+        &[
+            255, 0, 0, 0,
+            0, 255, 0, 0,
+        ]
+    )?;
+    let bboxes = vec![
+        physics::BoundingBox {
+            mode: None,
+            pos: na::Vector2::new(0_f32, 0_f32),
+            size: na::Vector2::new(30_f32, 30_f32),
+            ori: 0_f32,
+        },
+    ];
+
+    Ok(Player {
+        mode: None,
+        sprites: vec![
+            torso,
+        ],
+        sfx: vec![],
+
+        position: na::Vector2::new(100_f32, 470_f32),
+        velocity: na::Vector2::new(0_f32, 0_f32),
+        acceleration: na::Vector2::new(0_f32, 0_f32),
+        bboxes,
+
+        buff: vec![],
+        stance: (
+            VerticalStance::OnGround(GroundStance::Standing),
+            HorizontalStance::Left,
+        ),
+        movement: (Action::Idle, 0),
+
+        race: Race::Alien,
+        stats: Stats {},
+        abilities: vec![],
+        inputs: InputScheme::default(),
+    })
 }
