@@ -87,12 +87,15 @@ impl HandleInput for Player {
 
 impl physics::Collidable for Player {
     fn get_hitboxes<'tick>(&'tick self) -> &'tick[physics::BoundingBox] {
-        &[]
+        self.bboxes.as_ref()
     }
     fn get_effects(&self, bb: &physics::BoundingBox) -> Vec<physics::Effect> {
         vec![]
     }
     fn handle_collision(&self, collision: &physics::Collision) {}
+    fn get_offset(&self) -> na::Vector2<f32> {
+        self.position.clone()
+    }
 }
 
 

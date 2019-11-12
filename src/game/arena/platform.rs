@@ -1,5 +1,6 @@
 use ggez::{Context, GameResult};
-use ggez::graphics::{self, Drawable, DrawParam, Rect, BlendMode, Mesh, DrawMode};
+use ggez::graphics::{Drawable, DrawParam, Rect, BlendMode};
+use ggez::nalgebra as na;
 use serde::{Serialize, Deserialize};
 
 use crate::physics::{Collidable, BoundingBox, Effect, Collision};
@@ -23,6 +24,9 @@ impl Collidable for Platform {
         vec![]
     }
     fn handle_collision(&self, collision: &Collision) {}
+    fn get_offset(&self) -> na::Vector2<f32> {
+        na::Vector2::new(0_f32, 0_f32)
+    }
 }
 
 impl Drawable for Platform {
