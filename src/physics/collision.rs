@@ -52,18 +52,33 @@ fn transpose<T, S>(((t0, s0), (t1, s1)): ((T, S), (T, S))) -> ((T, T), (S, S)) {
     ((t0, t1), (s0, s1))
 }
 /// Check for hit box collisions between two `IntoIterator`s of `BoundingBox`es.
-fn check_for_hb_collisions<'a, I, II>(offset: na::Vector2<f32>, (hb0, hb1): (II, II)) -> Vec<(&'a BoundingBox, &'a BoundingBox)>
+///
+/// Applies the provided offset to all of the hitboxes in either the first or the second iterator
+/// depending on which iterator was requested to be offset.
+fn check_for_hb_collisions<'a, I, II>(offset_second: bool, offset: na::Vector2<f32>, (hb0, hb1): (II, II)) -> Vec<(&'a BoundingBox, &'a BoundingBox)>
 where
     I: std::iter::Iterator<Item = &'a BoundingBox> + std::clone::Clone,
     II: std::iter::IntoIterator<Item = &'a BoundingBox, IntoIter = I>,
 {
+    // Use the second set of hitboxes as the first when requested to do so.
+    let (hb0, hb1) = if offset_second {
+        (hb1, hb0)
+    } else {
+        (hb0, hb1)
+    };
+    let hb0_mapped_mem: Vec<_> = hb0.into_iter().map(|bb| (bb, BoundingBox {
+        pos: bb.pos + offset,
+        ..*bb
+    })).collect();
+    let hb0 = hb0_mapped_mem.iter();
     cartesian_product(hb0, hb1)
-        .filter(|(hb0, hb1)| {
-            let hb0_prime = BoundingBox {
-                pos: hb0.pos + offset,
-                ..**hb0
-            };
-            BoundingBox::check_collision(&hb0_prime, hb1)
+        .filter(|((_, offset_hb0), hb1)| {
+            BoundingBox::check_collision(offset_hb0, hb1)
+        })
+        .map(|(&(hb0, _), hb1)| if offset_second { // flip again to counteract initial flip
+            (hb1, hb0)
+        } else {
+            (hb0, hb1)
         })
         .collect()
 }
@@ -76,8 +91,15 @@ pub fn check_for_collisions<'tick>(entities: &[&'tick dyn Collidable]) -> Vec<Co
     unique_cartesian_square(entity_with_hitboxes)
         .map(transpose)
         .map(|(e_pair, hb_pair)| {
-            let offset = e_pair.0.get_offset() - e_pair.1.get_offset();
-            (e_pair, check_for_hb_collisions(offset, hb_pair))
+            // If the first list of hitboxes is shorter, we want to offset all the hitboxes of the
+            // first vs the second.
+            let should_offset_second = hb_pair.0.len() > hb_pair.1.len();
+            let offset = if should_offset_second {
+                e_pair.0.get_offset() - e_pair.1.get_offset()
+            } else {
+                e_pair.1.get_offset() - e_pair.0.get_offset()
+            };
+            (e_pair, check_for_hb_collisions(should_offset_second, offset, hb_pair))
         })
         .filter(|(_, hb_collisions): &(_, Vec<_>)| !hb_collisions.is_empty())
         .map(Collision::from)
@@ -162,7 +184,20 @@ mod cartesian_collision_test {
         let boxes1 = box_list1();
         let boxes2 = box_list2();
         let correct_collisions = vec![(&boxes1[0], &boxes2[1]), (&boxes1[1], &boxes2[1])];
-        let pairs = check_for_hb_collisions(na::Vector2::new(0_f32, 0_f32), (&boxes1, &boxes2));
+        let pairs = check_for_hb_collisions(false, na::Vector2::new(0_f32, 0_f32), (&boxes1, &boxes2));
+        assert!(pairs.len() == correct_collisions.len());
+
+        for element in correct_collisions.iter() {
+            assert!(pairs.iter().filter(|a| pair_matches2(**a, *element)).count() == 1);
+        }
+    }
+
+    #[test]
+    fn flipped_hb_collisions_test() {
+        let boxes1 = box_list1();
+        let boxes2 = box_list2();
+        let correct_collisions = vec![(&boxes1[0], &boxes2[1]), (&boxes1[1], &boxes2[1])];
+        let pairs = check_for_hb_collisions(true, na::Vector2::new(0_f32, 0_f32), (&boxes1, &boxes2));
         assert!(pairs.len() == correct_collisions.len());
 
         for element in correct_collisions.iter() {
