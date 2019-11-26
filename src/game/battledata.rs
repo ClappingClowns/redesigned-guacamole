@@ -1,10 +1,12 @@
 use ggez::{Context, GameResult};
 use ggez::graphics::{Drawable, DrawParam, Rect, Text, BlendMode};
+use ggez::nalgebra as na;
 use std::time::Instant;
 use std::path::Path;
 
 use super::arena::*;
 use super::player::*;
+use crate::physics::collision::*;
 
 use crate::inputs::{HandleInput, Input};
 use crate::util::result::WalpurgisResult;
@@ -16,6 +18,7 @@ pub struct BattleData {
     game_start: Instant,
     players: Vec<Player>,
     arena: Arena,
+    gravity: na::Vector2<f32>,
 }
 
 impl BattleData {
@@ -29,6 +32,7 @@ impl BattleData {
             game_start: Instant::now(),
             arena: Arena::load_first(arena_dir)?,
             players: vec![test_player(ctx)?],
+            gravity: na::Vector2::<f32>::new(0.0, 0.01),
         })
     }
 }
@@ -49,6 +53,23 @@ impl BattleData {
         let timer = Text::new(seconds);
         param.dest.x += 383_f32;
         timer.draw(ctx, param)
+    }
+
+    pub fn handle_update(&mut self) {
+        let collisions = check_for_collision_pairs(self.players.as_slice(), self.arena.platforms.as_slice());
+        for Collision {
+            ids: (id0, id1),
+            objs:(obj0, obj1),
+            overlapping_hitboxes
+        } in collisions {
+            obj0.handle_collision(obj1, &overlapping_hitboxes);
+            let x: Vec<_> = overlapping_hitboxes.into_iter().map(|(b0, b1)| (b1, b0)).collect();
+            obj1.handle_collision(obj0, &x);
+        }
+        for player in &mut self.players {
+            player.handle_push(&self.gravity);
+            player.handle_phys_update();
+        }
     }
 }
 

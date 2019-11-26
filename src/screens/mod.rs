@@ -21,6 +21,14 @@ impl HandleInput for Screen {
     }
 }
 
+impl Screen {
+    pub fn handle_update(&mut self) {
+        match self {
+            Self::Core(battle_data) => battle_data.handle_update(),
+        }
+    }
+}
+
 impl Drawable for Screen {
     fn draw(&self, ctx: &mut Context, param: DrawParam) -> GameResult {
         match self {

@@ -20,7 +20,7 @@ pub struct Arena {
     mode: Option<BlendMode>,
     // background_images: Vec<ggez::Image>,
     // soundtracks: Vec<ggez::SoundData>,
-    platforms: Vec<Platform>,
+    pub platforms: Vec<Platform>,
 }
 
 impl Arena {

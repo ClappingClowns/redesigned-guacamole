@@ -5,7 +5,7 @@ use ggez::graphics::{Image, Drawable, DrawParam, Rect, BlendMode};
 use ggez::nalgebra as na;
 
 use crate::inputs::{HandleInput, Input};
-use crate::physics;
+use crate::physics::*;
 use crate::util::result::WalpurgisResult;
 
 pub mod inputs;
@@ -33,7 +33,7 @@ pub struct Player {
     /// The sounds made by the character.
     sfx: Vec</*SoundData*/()>,
 
-    bboxes: Vec<physics::BoundingBox>,
+    bboxes: Vec <BoundingBox>,
 
     /// The position of the character.
     position: na::Vector2<f32>,
@@ -85,14 +85,24 @@ impl HandleInput for Player {
     }
 }
 
-impl physics::Collidable for Player {
-    fn get_hitboxes<'tick>(&'tick self) -> &'tick[physics::BoundingBox] {
+impl Collidable for Player {
+    type ChangeSet = ();
+
+    fn get_hitboxes<'tick>(&'tick self) -> &'tick[BoundingBox] {
         self.bboxes.as_ref()
     }
-    fn get_effects(&self, bb: &physics::BoundingBox) -> Vec<physics::Effect> {
+    fn get_effects(&self, bb: &BoundingBox) -> Vec<Effect> {
         vec![]
     }
-    fn handle_collision(&self, collision: &physics::Collision) {}
+    fn handle_collision<'tick, T: Collidable> (
+        &self,
+        other: &'tick T,
+        hitbox_pairs: &[(&'tick BoundingBox, &'tick BoundingBox)],
+    ) -> Self::ChangeSet { () }
+    fn handle_phys_update(&mut self) {
+        self.velocity += self.acceleration;
+        self.position += self.velocity;
+    }
     fn get_offset(&self) -> na::Vector2<f32> {
         self.position.clone()
     }
@@ -124,6 +134,12 @@ impl Drawable for Player {
     }
 }
 
+impl Player {
+    pub fn handle_push(&mut self, dir: &na::Vector2<f32>) {
+        self.velocity += dir;
+    }
+}
+
 /// A `Player` to be used for testing.
 pub fn test_player(ctx: &mut Context) -> WalpurgisResult<Player> {
     let torso = Image::from_rgba8(
@@ -134,7 +150,7 @@ pub fn test_player(ctx: &mut Context) -> WalpurgisResult<Player> {
         ]
     )?;
     let bboxes = vec![
-        physics::BoundingBox {
+        BoundingBox {
             mode: None,
             pos: na::Vector2::new(0_f32, 0_f32),
             size: na::Vector2::new(30_f32, 30_f32),
@@ -149,7 +165,7 @@ pub fn test_player(ctx: &mut Context) -> WalpurgisResult<Player> {
         ],
         sfx: vec![],
 
-        position: na::Vector2::new(100_f32, 470_f32),
+        position: na::Vector2::new(100_f32, 0_f32),
         velocity: na::Vector2::new(0_f32, 0_f32),
         acceleration: na::Vector2::new(0_f32, 0_f32),
         bboxes,

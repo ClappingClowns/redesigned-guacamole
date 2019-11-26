@@ -39,6 +39,8 @@ impl EventHandler for Walpurgis {
         while ggez::timer::check_update_time(ctx, 60) {
             self.screen.handle_input(ctx, &self.fire_once_key_buffer);
             self.fire_once_key_buffer.clear();
+
+            self.screen.handle_update();
         }
         Ok(())
     }

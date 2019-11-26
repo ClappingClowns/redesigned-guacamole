@@ -16,6 +16,7 @@ pub enum Effect {
 /// Any object that can be collided with should implement this trait.
 /// When object A collides with object B, both A and B should affect one another.
 pub trait Collidable {
+    type ChangeSet;
     /// Gets the list of hitboxes comprising the person.
     ///
     /// TODO: Make this reflect a tree of collidables that we can narrow down in a broad and narrow
@@ -23,32 +24,40 @@ pub trait Collidable {
     fn get_hitboxes<'tick>(&'tick self) -> &'tick[BoundingBox];
     /// (Final interface TBD) Gets a set of effects to apply.
     fn get_effects(&self, bb: &BoundingBox) -> Vec<Effect>;
-    fn handle_collision(&self, collision: &Collision);
+    // first hitbox in pair belongs to self
+    fn handle_collision<'tick, T: Collidable> (
+        &self,
+        other: &'tick T,
+        hitbox_pairs: &[(&'tick BoundingBox, &'tick BoundingBox)],
+    ) -> Self::ChangeSet;
+    fn handle_phys_update(&mut self);
     fn get_offset(&self) -> na::Vector2<f32>;
 }
 
 /// Returns the details of a collision.
 ///
 /// Bound by lifetime to a single `tick` of the program.
-pub struct Collision<'tick> {
+pub struct Collision<'tick, T: Collidable, S: Collidable> {
+    pub ids: (usize, usize),
     /// The pair of `Collidable` objects that collided.
-    pub objs: (&'tick dyn Collidable, &'tick dyn Collidable),
+    pub objs: (&'tick T, &'tick S),
     /// A list of `BoundingBox`es that were detected to overlap.
     ///
     /// The bounding boxes on the left belongs to the `Collidable` on the left and vice versa.
     pub overlapping_hitboxes: Vec<(&'tick BoundingBox, &'tick BoundingBox)>,
 }
-impl<'tick> From<((&'tick dyn Collidable, &'tick dyn Collidable), Vec<(&'tick BoundingBox, &'tick BoundingBox)>)> for Collision<'tick> {
-    fn from((e_pair, hb_collisions): ((&'tick dyn Collidable, &'tick dyn Collidable), Vec<(&'tick BoundingBox, &'tick BoundingBox)>)) -> Self {
+impl<'tick, T: Collidable, S: Collidable> From<(((usize, &'tick T), (usize, &'tick S)), Vec<(&'tick BoundingBox, &'tick BoundingBox)>)> for Collision<'tick, T, S> {
+    fn from((((id0, e0), (id1, e1)), hb_collisions): (((usize, &'tick T), (usize, &'tick S)), Vec<(&'tick BoundingBox, &'tick BoundingBox)>)) -> Self {
         Self {
-            objs: e_pair,
+            ids: (id0, id1),
+            objs: (e0, e1),
             overlapping_hitboxes: hb_collisions,
         }
     }
 }
 
 /// Transposes a 2-tuple of 2-tuples where the tuples are bucketed by type.
-fn transpose<T, S>(((t0, s0), (t1, s1)): ((T, S), (T, S))) -> ((T, T), (S, S)) {
+fn transpose<T0, T1, S0, S1>(((t0, s0), (t1, s1)): ((T0, S0), (T1, S1))) -> ((T0, T1), (S0, S1)) {
     ((t0, t1), (s0, s1))
 }
 /// Check for hit box collisions between two `IntoIterator`s of `BoundingBox`es.
@@ -83,10 +92,11 @@ where
         .collect()
 }
 /// Check for collisions within a slice of [`Collidable`]s
-pub fn check_for_collisions<'tick>(entities: &[&'tick dyn Collidable]) -> Vec<Collision<'tick>> {
+pub fn check_for_collisions<'tick, T:Collidable>(entities: &'tick[T]) -> Vec<Collision<'tick, T, T>> {
     let entity_with_hitboxes: Vec<_> = entities
         .iter()
-        .map(|e| (*e, e.get_hitboxes()))
+        .enumerate()
+        .map(|(id, e)| ((id, e), e.get_hitboxes()))
         .collect();
     unique_cartesian_square(entity_with_hitboxes)
         .map(transpose)
@@ -95,9 +105,9 @@ pub fn check_for_collisions<'tick>(entities: &[&'tick dyn Collidable]) -> Vec<Co
             // first vs the second.
             let should_offset_second = hb_pair.0.len() > hb_pair.1.len();
             let offset = if should_offset_second {
-                e_pair.1.get_offset() - e_pair.0.get_offset()
+                (e_pair.1).1.get_offset() - (e_pair.0).1.get_offset()
             } else {
-                e_pair.0.get_offset() - e_pair.1.get_offset()
+                (e_pair.0).1.get_offset() - (e_pair.1).1.get_offset()
             };
             (e_pair, check_for_hb_collisions(should_offset_second, offset, hb_pair))
         })
@@ -105,6 +115,40 @@ pub fn check_for_collisions<'tick>(entities: &[&'tick dyn Collidable]) -> Vec<Co
         .map(Collision::from)
         .collect()
 }
+
+/// Check for collisions between two slices of [`Collidable`]s
+pub fn check_for_collision_pairs<'tick, T: Collidable, S: Collidable>(set1: &'tick[T], set2: &'tick[S]) 
+    -> Vec<Collision<'tick, T, S>> {
+
+    let set1_with_hitboxes: Vec<_> = set1
+        .iter()
+        .enumerate()
+        .map(|(id, e)| ((id, e), e.get_hitboxes()))
+        .collect();
+    let set2_with_hitboxes: Vec<_> = set2
+        .iter()
+        .enumerate()
+        .map(|(id, e)| ((id, e), e.get_hitboxes()))
+        .collect();
+    cartesian_product(set1_with_hitboxes, set2_with_hitboxes)
+        .map(transpose)
+        .map(|(e_pair, hb_pair)| {
+            // If the first list of hitboxes is shorter, we want to offset all the hitboxes of the
+            // first vs the second.
+            let should_offset_second = hb_pair.0.len() > hb_pair.1.len();
+            let offset = if should_offset_second {
+                (e_pair.1).1.get_offset() - (e_pair.0).1.get_offset()
+            } else {
+                (e_pair.0).1.get_offset() - (e_pair.1).1.get_offset()
+            };
+            (e_pair, check_for_hb_collisions(should_offset_second, offset, hb_pair))
+        })
+        .filter(|(_, hb_collisions): &(_, Vec<_>)| !hb_collisions.is_empty())
+        .map(Collision::from)
+        .collect()
+}
+
+
 
 #[cfg(test)]
 mod cartesian_collision_test {
@@ -115,13 +159,19 @@ mod cartesian_collision_test {
         boxes: Vec<BoundingBox>
     }
     impl Collidable for DummyStruct {
+        type ChangeSet = ();
         fn get_hitboxes<'tick>(&'tick self) -> &'tick[BoundingBox] {
             &self.boxes
         }
         fn get_effects(&self, bb: &BoundingBox) -> Vec<Effect> {
             vec![]
         }
-        fn handle_collision(&self, collision: &Collision) {}
+        fn handle_collision<'tick, T: Collidable> (
+            &self,
+            other: &'tick T,
+            hitbox_pairs: &[(&'tick BoundingBox, &'tick BoundingBox)],
+        ) -> Self::ChangeSet { () }
+        fn handle_phys_update(&mut self) {}
         fn get_offset(&self) -> na::Vector2<f32> {
             na::Vector2::new(0_f32, 0_f32)
         }
@@ -210,9 +260,7 @@ mod cartesian_collision_test {
         let els: Vec<_> = [box_list1, box_list2, box_list3].into_iter()
             .map(|hb_fn| DummyStruct { boxes: hb_fn() })
             .collect();
-        let el_refs: Vec<_> = els.iter()
-            .map(|r| r as &dyn Collidable)
-            .collect();
+        let el_refs: Vec<_> = els.iter().collect();
         let hb_refs: Vec<Vec<_>> = els.iter()
             .map(|e| e.get_hitboxes().iter().collect())
             .collect();
@@ -221,6 +269,7 @@ mod cartesian_collision_test {
         assert!(collisions.len() == 1);
 
         let Collision {
+            ids: (id0, id1),
             overlapping_hitboxes: overlaps,
             objs: (obj0, obj1),
         } = collisions.pop().unwrap();
