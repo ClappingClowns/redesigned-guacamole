@@ -218,10 +218,9 @@ mod cartesian_collision_test {
     }
 
     fn pair_matches<E> (tp1: &(E,E), tp2: &(E,E)) -> bool
-    where E: Eq + Copy
+        where E: Eq
     {
-        (tp1 == tp2) ||
-        (tp1 == &(tp2.1, tp2.0))
+        (tp1 == tp2) || (tp1.0 == tp2.1 && tp1.1 == tp2.0)
     }
 
     fn pair_matches2<E> (tp1: (&E,&E), tp2: (&E,&E)) -> bool {
@@ -257,7 +256,7 @@ mod cartesian_collision_test {
 
     #[test]
     fn collisions_test() {
-        let els: Vec<_> = [box_list1, box_list2, box_list3].into_iter()
+        let els: Vec<_> = [box_list1, box_list2, box_list3].iter()
             .map(|hb_fn| DummyStruct { boxes: hb_fn() })
             .collect();
         let el_refs: Vec<_> = els.iter().collect();
@@ -265,7 +264,7 @@ mod cartesian_collision_test {
             .map(|e| e.get_hitboxes().iter().collect())
             .collect();
 
-        let mut collisions = check_for_collisions(el_refs.as_slice());
+        let mut collisions = check_for_collisions(els.as_slice());
         assert!(collisions.len() == 1);
 
         let Collision {
