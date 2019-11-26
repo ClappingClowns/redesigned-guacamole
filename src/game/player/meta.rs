@@ -35,4 +35,3 @@ pub struct Stats {
 pub enum Ability {
     // TODO: ALL THE ABILITIES
 }
-

@@ -3,7 +3,7 @@ use ggez::graphics::{self, Drawable, DrawParam, Rect, BlendMode, Mesh, DrawMode}
 use ggez::nalgebra as na;
 use serde::{Serialize, Deserialize};
 
-use crate::physics::{Collidable, Effect, Collision};
+use crate::physics::{Collidable, Effect};
 
 type Radians = f32;
 
@@ -86,8 +86,6 @@ impl BoundingBox {
     /// A full collision check requires two calls to this with flipped parameters, so this is
     /// termed `half` a collision check.
     fn check_half_collision(&self, basis: &BoundingBox) -> bool {
-        const ORI_EPSILON: f32 = 1e-7;
-
         let rhs = self.normalized_wrt(basis);
         let lhs_bounds = basis.size;
         let rhs_bounds = rhs.bounds();
@@ -138,14 +136,15 @@ impl Collidable for BoundingBox {
         std::slice::from_ref(self)
     }
     /// (Final interface TBD) Gets a set of effects to apply.
-    fn get_effects(&self, bb: &BoundingBox) -> Vec<Effect> {
+    fn get_effects(&self, _: &BoundingBox) -> Vec<Effect> {
         vec![]
     }
     fn handle_collision<'tick, T: Collidable> (
         &self,
-        other: &'tick T,
-        hitbox_pairs: &[(&'tick BoundingBox, &'tick BoundingBox)],
+        _: &'tick T,
+        _: &[(&'tick BoundingBox, &'tick BoundingBox)],
     ) -> Self::ChangeSet { () }
+    fn apply_changeset(&mut self, _: Vec<Self::ChangeSet>) {}
     fn handle_phys_update(&mut self) {}
     fn get_offset(&self) -> na::Vector2<f32> {
         na::Vector2::new(0_f32, 0_f32)

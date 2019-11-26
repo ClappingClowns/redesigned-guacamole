@@ -9,7 +9,10 @@ use super::player::*;
 use crate::physics::collision::*;
 
 use crate::inputs::{HandleInput, Input};
-use crate::util::result::WalpurgisResult;
+use crate::util::{
+    tuple::flip_tuple_vec,
+    result::WalpurgisResult
+};
 
 /// The data specific to each battle.
 /// Every battle between `Player`s will be played in an `Arena`.
@@ -56,19 +59,58 @@ impl BattleData {
     }
 
     pub fn handle_update(&mut self) {
+        // Find changes.
+
+        let mut player_changesets = vec![vec![]; self.players.len()];
+        let mut platform_changesets = vec![vec![]; self.arena.platforms.len()];
+
         let collisions = check_for_collision_pairs(self.players.as_slice(), self.arena.platforms.as_slice());
         for Collision {
-            ids: (id0, id1),
-            objs:(obj0, obj1),
+            ids: (player_idx, platform_idx),
+            objs:(player, platform),
             overlapping_hitboxes
         } in collisions {
-            obj0.handle_collision(obj1, &overlapping_hitboxes);
-            let x: Vec<_> = overlapping_hitboxes.into_iter().map(|(b0, b1)| (b1, b0)).collect();
-            obj1.handle_collision(obj0, &x);
+            let player_changeset = player.handle_collision(platform, &overlapping_hitboxes);
+            player_changesets[player_idx].push(player_changeset);
+
+            let platform_changeset = platform.handle_collision(player, &flip_tuple_vec(overlapping_hitboxes));
+            platform_changesets[platform_idx].push(platform_changeset);
         }
+
+        let collisions = check_for_collisions(self.players.as_slice());
+        for Collision {
+            ids: (idx0, idx1),
+            objs:(player0, player1),
+            overlapping_hitboxes
+        } in collisions {
+            let player_changeset = player0.handle_collision(player1, &overlapping_hitboxes);
+            player_changesets[idx0].push(player_changeset);
+
+            let platform_changeset = player1.handle_collision(player0, &flip_tuple_vec(overlapping_hitboxes));
+            platform_changesets[idx1].push(platform_changeset);
+        }
+
+        // TODO consider rollback, generic collision resolution
+
+        // Apply changes.
+
+        for (idx, changesets) in player_changesets.into_iter().enumerate() {
+            self.players[idx].apply_changeset(changesets);
+        }
+
+        for (idx, changesets) in platform_changesets.into_iter().enumerate() {
+            self.arena.platforms[idx].apply_changeset(changesets);
+        }
+
+        // Advance time.
+
         for player in &mut self.players {
             player.handle_push(&self.gravity);
             player.handle_phys_update();
+        }
+
+        for platform in &mut self.arena.platforms {
+            platform.handle_phys_update();
         }
     }
 }

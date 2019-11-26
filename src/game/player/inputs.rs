@@ -1,7 +1,7 @@
 //! Inputs only affect Players. Thus we need to figure out a mapping from device inputs to Player updates.
 //! Every time we want to update a Player, we will send a message (an Event).
 //! Mapping from inputs to events in the basic scheme:
-//! 
+//!
 //! |   Input                  |   Event                          |
 //! |--------------------------|----------------------------------|
 //! | A / D                    |  (Walk, Left \| Right)           |
@@ -34,7 +34,7 @@
 /// Event Stream <----------------- | Stateful Mapper | <--------------- Mouse Input Stream
 ///                                 |_________________| <--------------- Joystick Input Stream
 /// ```
-/// 
+///
 use ggez::Context;
 use ggez::event::{KeyCode, KeyMods};
 use ggez::input::keyboard;
@@ -89,7 +89,7 @@ impl ContinuousScheme {
 pub struct FireOnceScheme;
 
 impl FireOnceScheme {
-    pub fn get_possible_actions(&self, ctx: &mut Context, fire_once_key_buffer: &Vec<Input>) -> Vec<Action> {
+    pub fn get_possible_actions(&self, _ctx: &mut Context, _fire_once_key_buffer: &Vec<Input>) -> Vec<Action> {
         vec![]
     }
 }

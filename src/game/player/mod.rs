@@ -1,6 +1,4 @@
 use ggez::{Context, GameResult};
-use ggez::input::keyboard;
-use ggez::event::{KeyCode};
 use ggez::graphics::{Image, Drawable, DrawParam, Rect, BlendMode};
 use ggez::nalgebra as na;
 
@@ -91,14 +89,15 @@ impl Collidable for Player {
     fn get_hitboxes<'tick>(&'tick self) -> &'tick[BoundingBox] {
         self.bboxes.as_ref()
     }
-    fn get_effects(&self, bb: &BoundingBox) -> Vec<Effect> {
+    fn get_effects(&self, _bb: &BoundingBox) -> Vec<Effect> {
         vec![]
     }
     fn handle_collision<'tick, T: Collidable> (
         &self,
-        other: &'tick T,
-        hitbox_pairs: &[(&'tick BoundingBox, &'tick BoundingBox)],
+        _other: &'tick T,
+        _hitbox_pairs: &[(&'tick BoundingBox, &'tick BoundingBox)],
     ) -> Self::ChangeSet { () }
+    fn apply_changeset(&mut self, _changes: Vec<Self::ChangeSet>) {}
     fn handle_phys_update(&mut self) {
         self.velocity += self.acceleration;
         self.position += self.velocity;

@@ -3,7 +3,7 @@ use ggez::graphics::{Drawable, DrawParam, Rect, BlendMode};
 use ggez::nalgebra as na;
 use serde::{Serialize, Deserialize};
 
-use crate::physics::{Collidable, BoundingBox, Effect, Collision};
+use crate::physics::{Collidable, BoundingBox, Effect};
 
 /// Denotes a collidable, static section of the `Arena`.
 #[derive(Debug, Serialize, Deserialize)]
@@ -21,14 +21,15 @@ impl Collidable for Platform {
     fn get_hitboxes<'tick>(&'tick self) -> &'tick[BoundingBox] {
         self.body.get_hitboxes()
     }
-    fn get_effects(&self, bb: &BoundingBox) -> Vec<Effect> {
+    fn get_effects(&self, _bb: &BoundingBox) -> Vec<Effect> {
         vec![]
     }
     fn handle_collision<'tick, T: Collidable> (
         &self,
-        other: &'tick T,
-        hitbox_pairs: &[(&'tick BoundingBox, &'tick BoundingBox)],
+        _other: &'tick T,
+        _hitbox_pairs: &[(&'tick BoundingBox, &'tick BoundingBox)],
     ) -> Self::ChangeSet { () }
+    fn apply_changeset(&mut self, _changes: Vec<Self::ChangeSet>) {}
     fn handle_phys_update(&mut self) {}
     fn get_offset(&self) -> na::Vector2<f32> {
         na::Vector2::new(0_f32, 0_f32)

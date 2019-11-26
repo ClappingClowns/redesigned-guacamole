@@ -63,7 +63,6 @@ impl EventHandler for Walpurgis {
             key => {
                 self.fire_once_key_buffer.push((key, mods));
             }
-            _ => (),
         }
     }
 }
