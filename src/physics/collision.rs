@@ -186,7 +186,7 @@ mod cartesian_collision_test {
             _: &'tick T,
             _: &[(&'tick BoundingBox, &'tick BoundingBox)],
         ) -> Self::ChangeSet { () }
-        fn apply_changeset(&mut self, _: Self::ChangeSet) {}
+        fn apply_changeset(&mut self, _: Vec<Self::ChangeSet>) {}
         fn handle_phys_update(&mut self) {}
         fn get_offset(&self) -> na::Vector2<f32> {
             na::Vector2::new(0_f32, 0_f32)
