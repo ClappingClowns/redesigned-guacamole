@@ -4,6 +4,7 @@ use ggez::nalgebra as na;
 
 use crate::inputs::{HandleInput, Input};
 use crate::physics::*;
+use crate::physics::collision::*;
 use crate::util::result::WalpurgisResult;
 
 pub mod inputs;
@@ -97,15 +98,19 @@ impl Collidable for Player {
         other: &'tick T,
         hitbox_pairs: &[(&'tick BoundingBox, &'tick BoundingBox)],
     ) -> Self::ChangeSet {
-        // Get effects of each of the hb we collided with
-        let effects = hitbox_pairs
+        // Create a bunch of `ChangeSet`s & then merge 'em all
+        hitbox_pairs
             .iter()
-            .map(|(my_hb, other_hb)| {
-                (other.get_effects(other_hb), my_hb, other_hb)
-            });
-        ()
+            .flat_map(|(my_hb, other_hb)| {
+                other.get_effects(other_hb)
+                    .into_iter()
+                    .map(|_| {
+                        ()
+                    })
+            })
+            .fold((), |acc, x| acc.merge(&x));
     }
-    fn apply_changeset(&mut self, change: Self::ChangeSet) {}
+    fn apply_changeset(&mut self, _change: Self::ChangeSet) {}
     fn handle_phys_update(&mut self) {
         self.velocity += self.acceleration;
         self.position += self.velocity;
