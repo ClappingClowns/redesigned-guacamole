@@ -7,7 +7,7 @@ use std::path::Path;
 
 use crate::util::result::WalpurgisResult;
 
-mod platform;
+pub mod platform;
 use platform::*;
 
 /// Stores data for the `Arena` outside of actual players.

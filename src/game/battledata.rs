@@ -6,6 +6,7 @@ use std::path::Path;
 
 use super::arena::*;
 use super::player::*;
+use crate::game::arena::platform::Platform;
 use crate::physics::collision::*;
 
 use crate::inputs::{HandleInput, Input};
@@ -60,9 +61,8 @@ impl BattleData {
 
     pub fn handle_update(&mut self) {
         // Find changes.
-
-        let mut player_changesets = vec![vec![]; self.players.len()];
-        let mut platform_changesets = vec![vec![]; self.arena.platforms.len()];
+        let mut player_changesets: Vec<Option<<Player as Collidable>::ChangeSet>> = vec![None; self.players.len()];
+        let mut platform_changesets: Vec<Option<<Platform as Collidable>::ChangeSet>> = vec![None; self.arena.platforms.len()];
 
         let collisions = check_for_collision_pairs(self.players.as_slice(), self.arena.platforms.as_slice());
         for Collision {
@@ -71,10 +71,16 @@ impl BattleData {
             overlapping_hitboxes
         } in collisions {
             let player_changeset = player.handle_collision(platform, &overlapping_hitboxes);
-            player_changesets[player_idx].push(player_changeset);
+            player_changesets[player_idx] = match player_changesets[player_idx] {
+                Some(changeset) => Some(changeset.merge(&player_changeset)),
+                None => Some(player_changeset),
+            };
 
             let platform_changeset = platform.handle_collision(player, &flip_tuple_vec(overlapping_hitboxes));
-            platform_changesets[platform_idx].push(platform_changeset);
+            platform_changesets[platform_idx] = match platform_changesets[platform_idx] {
+                Some(changeset) => Some(changeset.merge(&platform_changeset)),
+                None => Some(platform_changeset),
+            };
         }
 
         let collisions = check_for_collisions(self.players.as_slice());
@@ -83,32 +89,40 @@ impl BattleData {
             objs:(player0, player1),
             overlapping_hitboxes
         } in collisions {
-            let player_changeset = player0.handle_collision(player1, &overlapping_hitboxes);
-            player_changesets[idx0].push(player_changeset);
+            let player0_changeset = player0.handle_collision(player1, &overlapping_hitboxes);
+            player_changesets[idx0] = match player_changesets[idx0] {
+                Some(changeset) => Some(changeset.merge(&player0_changeset)),
+                None => Some(player0_changeset),
+            };
 
-            let platform_changeset = player1.handle_collision(player0, &flip_tuple_vec(overlapping_hitboxes));
-            platform_changesets[idx1].push(platform_changeset);
+            let player1_changeset = player1.handle_collision(player0, &flip_tuple_vec(overlapping_hitboxes));
+            player_changesets[idx1] = match player_changesets[idx1] {
+                Some(changeset) => Some(changeset.merge(&player1_changeset)),
+                None => Some(player1_changeset),
+            };
         }
 
         // TODO consider rollback, generic collision resolution
 
         // Apply changes.
-
-        for (idx, changesets) in player_changesets.into_iter().enumerate() {
-            self.players[idx].apply_changeset(changesets);
+        for (idx, changeset) in player_changesets.into_iter().enumerate() {
+            match changeset {
+                Some(changeset) => self.players[idx].apply_changeset(changeset),
+                None => (),
+            };
         }
-
-        for (idx, changesets) in platform_changesets.into_iter().enumerate() {
-            self.arena.platforms[idx].apply_changeset(changesets);
+        for (idx, changeset) in platform_changesets.into_iter().enumerate() {
+            match changeset {
+                Some(changeset) => self.arena.platforms[idx].apply_changeset(changeset),
+                None => (),
+            };
         }
 
         // Advance time.
-
         for player in &mut self.players {
             player.handle_push(&self.gravity);
             player.handle_phys_update();
         }
-
         for platform in &mut self.arena.platforms {
             platform.handle_phys_update();
         }

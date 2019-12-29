@@ -14,12 +14,23 @@ pub enum Effect {
     Push(ggez::nalgebra::Vector2<f32>),
     Damage(f32),
     Buff(Buff),
+    Floor,
+}
+
+pub trait Mergeable {
+    fn merge(&self, other: &Self) -> Self;
+}
+
+impl Mergeable for () {
+    fn merge(&self, _other: &Self) -> Self {
+        ()
+    }
 }
 
 /// Any object that can be collided with should implement this trait.
 /// When object A collides with object B, both A and B should affect one another.
 pub trait Collidable {
-    type ChangeSet;
+    type ChangeSet: Mergeable;
     /// Gets the list of hitboxes comprising the person.
     ///
     /// TODO: Make this reflect a tree of collidables that we can narrow down in a broad and narrow
@@ -33,7 +44,7 @@ pub trait Collidable {
         other: &'tick T,
         hitbox_pairs: &[(&'tick BoundingBox, &'tick BoundingBox)],
     ) -> Self::ChangeSet;
-    fn apply_changeset(&mut self, changes: Vec<Self::ChangeSet>);
+    fn apply_changeset(&mut self, changes: Self::ChangeSet);
     fn handle_phys_update(&mut self);
     fn get_offset(&self) -> na::Vector2<f32>;
 }
@@ -102,11 +113,10 @@ where
 }
 /// Check for collisions within a slice of [`Collidable`]s
 pub fn check_for_collisions<'tick, T:Collidable>(entities: &'tick[T]) -> Vec<Collision<'tick, T, T>> {
-    let entity_with_hitboxes: Vec<_> = entities
+    let entity_with_hitboxes = entities
         .iter()
         .enumerate()
-        .map(|(id, e)| ((id, e), e.get_hitboxes()))
-        .collect();
+        .map(|(id, e)| ((id, e), e.get_hitboxes()));
     unique_cartesian_square(entity_with_hitboxes)
         .map(transpose)
         .map(|(e_pair, hb_pair)| {
@@ -186,7 +196,7 @@ mod cartesian_collision_test {
             _: &'tick T,
             _: &[(&'tick BoundingBox, &'tick BoundingBox)],
         ) -> Self::ChangeSet { () }
-        fn apply_changeset(&mut self, _: Vec<Self::ChangeSet>) {}
+        fn apply_changeset(&mut self, _: Self::ChangeSet) {}
         fn handle_phys_update(&mut self) {}
         fn get_offset(&self) -> na::Vector2<f32> {
             na::Vector2::new(0_f32, 0_f32)

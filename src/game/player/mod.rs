@@ -94,10 +94,18 @@ impl Collidable for Player {
     }
     fn handle_collision<'tick, T: Collidable> (
         &self,
-        _other: &'tick T,
-        _hitbox_pairs: &[(&'tick BoundingBox, &'tick BoundingBox)],
-    ) -> Self::ChangeSet { () }
-    fn apply_changeset(&mut self, _changes: Vec<Self::ChangeSet>) {}
+        other: &'tick T,
+        hitbox_pairs: &[(&'tick BoundingBox, &'tick BoundingBox)],
+    ) -> Self::ChangeSet {
+        // Get effects of each of the hb we collided with
+        let effects = hitbox_pairs
+            .iter()
+            .map(|(my_hb, other_hb)| {
+                (other.get_effects(other_hb), my_hb, other_hb)
+            });
+        ()
+    }
+    fn apply_changeset(&mut self, change: Self::ChangeSet) {}
     fn handle_phys_update(&mut self) {
         self.velocity += self.acceleration;
         self.position += self.velocity;

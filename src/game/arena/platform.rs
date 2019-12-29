@@ -29,7 +29,7 @@ impl Collidable for Platform {
         _other: &'tick T,
         _hitbox_pairs: &[(&'tick BoundingBox, &'tick BoundingBox)],
     ) -> Self::ChangeSet { () }
-    fn apply_changeset(&mut self, _changes: Vec<Self::ChangeSet>) {}
+    fn apply_changeset(&mut self, _changes: Self::ChangeSet) {}
     fn handle_phys_update(&mut self) {}
     fn get_offset(&self) -> na::Vector2<f32> {
         na::Vector2::new(0_f32, 0_f32)
