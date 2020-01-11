@@ -67,11 +67,11 @@ impl BattleData {
         let collisions = check_for_collision_pairs(self.players.as_slice(), self.arena.platforms.as_slice());
         for Collision {
             ids: (player_idx, platform_idx),
-            objs:(player, platform),
+            objs: (player, platform),
             overlapping_hitboxes
         } in collisions {
             let player_changeset = player.handle_collision(platform, &overlapping_hitboxes);
-            player_changesets[player_idx] = match player_changesets[player_idx] {
+            player_changesets[player_idx] = match &player_changesets[player_idx] {
                 Some(changeset) => Some(changeset.merge(&player_changeset)),
                 None => Some(player_changeset),
             };
@@ -90,13 +90,13 @@ impl BattleData {
             overlapping_hitboxes
         } in collisions {
             let player0_changeset = player0.handle_collision(player1, &overlapping_hitboxes);
-            player_changesets[idx0] = match player_changesets[idx0] {
+            player_changesets[idx0] = match &player_changesets[idx0] {
                 Some(changeset) => Some(changeset.merge(&player0_changeset)),
                 None => Some(player0_changeset),
             };
 
             let player1_changeset = player1.handle_collision(player0, &flip_tuple_vec(overlapping_hitboxes));
-            player_changesets[idx1] = match player_changesets[idx1] {
+            player_changesets[idx1] = match &player_changesets[idx1] {
                 Some(changeset) => Some(changeset.merge(&player1_changeset)),
                 None => Some(player1_changeset),
             };

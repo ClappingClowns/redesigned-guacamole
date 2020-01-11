@@ -14,7 +14,6 @@ pub enum Effect {
     Push(ggez::nalgebra::Vector2<f32>),
     Damage(f32),
     Buff(Buff),
-    Floor,
 }
 
 pub trait Mergeable {
