@@ -2,13 +2,13 @@
 use crate::{
     screens::battle::{
         platform::Platform,
-        player::Player,
+        player::{Player, Changes as PlayerChangeSet},
     },
     physics::{Collision, Collidable},
 };
 
 // Replace handle_x_x_collision with specialization once available.
-type Changes<A: Collidable, B: Collidable> = (Option<<A as Collidable>::ChangeSet>, Option<<B as Collidable>::ChangeSet>);
+type Changes<A, B> = (Option<<A as Collidable>::ChangeSet>, Option<<B as Collidable>::ChangeSet>);
 
 /*
 pub fn handle_collision<'tick, A: Collidable, B: Collidable>(
@@ -32,16 +32,22 @@ pub fn handle_collision<'tick, A: Collidable, B: Collidable>(
 pub fn handle_platform_platform_collision<'tick>(
     c: Collision<'tick, Platform, Platform>,
 ) -> Changes<Platform, Platform> {
+    log::trace!("Platform {} collided with platform {}.", c.ids.0, c.ids.1);
     (None, None)
 }
 pub fn handle_player_player_collision<'tick>(
     c: Collision<'tick, Player, Player>,
 ) -> Changes<Player, Player> {
+    log::trace!("Player {} collided with player {}.", c.ids.0, c.ids.1);
     (None, None)
 }
 pub fn handle_player_platform_collision<'tick>(
     c: Collision<'tick, Player, Platform>,
 ) -> Changes<Player, Platform> {
-    (None, None)
+    log::trace!("Player {} collided with platform {}.", c.ids.0, c.ids.1);
+    (Some(PlayerChangeSet {
+        contacted_platforms: vec![c.ids.1],
+        ..Default::default()
+    }), None)
 }
 

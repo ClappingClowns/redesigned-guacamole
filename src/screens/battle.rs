@@ -21,7 +21,7 @@ use crate::{
     screens::battle::{
         arena::Arena,
         platform::Platform,
-        player::{Player, test_player},
+        player::{Player, Changes as PlayerChangeSet, test_player},
     },
     inputs::{HandleInput, Input},
     physics::collision::*,
@@ -75,18 +75,22 @@ impl BattleData {
         use interactions as res;
 
         // Find changes.
-        let mut player_changesets: Vec<Option<<Player as Collidable>::ChangeSet>> = vec![None; self.players.len()];
-        let mut platform_changesets: Vec<Option<<Platform as Collidable>::ChangeSet>> = vec![None; self.arena.platforms.len()];
+        let grav_changeset = PlayerChangeSet {
+            force: self.gravity,
+            ..Default::default()
+        };
+        let mut player_changesets: Vec<<Player as Collidable>::ChangeSet>
+            = vec![grav_changeset; self.players.len()];
+        let mut platform_changesets: Vec<Option<<Platform as Collidable>::ChangeSet>>
+            = vec![None; self.arena.platforms.len()];
 
         let collisions = check_for_collision_pairs(self.players.as_slice(), self.arena.platforms.as_slice());
         for c in collisions {
             let (player_id, platform_id) = c.ids;
             let (player_changeset, platform_changeset) = res::handle_player_platform_collision(c);
             if let Some(player_changeset) = player_changeset {
-                player_changesets[player_id] = match &player_changesets[player_id] {
-                    Some(changeset) => Some(changeset.merge(&player_changeset)),
-                    None => Some(player_changeset),
-                };
+                player_changesets[player_id]
+                    = player_changesets[player_id].merge(&player_changeset);
             }
             if let Some(platform_changeset) = platform_changeset {
                 platform_changesets[platform_id] = match platform_changesets[platform_id] {
@@ -101,16 +105,12 @@ impl BattleData {
             let (p0_id, p1_id) = c.ids;
             let (changeset0, changeset1) = res::handle_player_player_collision(c);
             if let Some(changeset0) = changeset0 {
-                player_changesets[p0_id] = match &player_changesets[p0_id] {
-                    Some(changeset) => Some(changeset.merge(&changeset0)),
-                    None => Some(changeset0),
-                };
+                player_changesets[p0_id]
+                    = player_changesets[p0_id].merge(&changeset0);
             }
             if let Some(changeset1) = changeset1 {
-                player_changesets[p1_id] = match &player_changesets[p1_id] {
-                    Some(changeset) => Some(changeset.merge(&changeset1)),
-                    None => Some(changeset1),
-                };
+                player_changesets[p1_id]
+                    = player_changesets[p1_id].merge(&changeset1);
             }
         }
 
@@ -118,10 +118,7 @@ impl BattleData {
 
         // Apply changes.
         for (idx, changeset) in player_changesets.into_iter().enumerate() {
-            match changeset {
-                Some(changeset) => self.players[idx].apply_changeset(changeset),
-                None => (),
-            };
+            self.players[idx].apply_changeset(changeset);
         }
         for (idx, changeset) in platform_changesets.into_iter().enumerate() {
             match changeset {
@@ -132,7 +129,6 @@ impl BattleData {
 
         // Advance time.
         for player in &mut self.players {
-            player.handle_push(&self.gravity);
             player.handle_phys_update();
         }
         for platform in &mut self.arena.platforms {

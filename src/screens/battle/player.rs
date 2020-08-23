@@ -57,6 +57,10 @@ pub struct Player {
     abilities: Vec<Ability>,
     /// The input options allowed for a player.
     inputs: InputScheme,
+
+    /// Tracking data for platform fall-through.
+    platforms_to_ignore: Vec<usize>,
+    touched_platforms: Vec<usize>,
 }
 
 impl HandleInput for Player {
@@ -86,13 +90,15 @@ impl HandleInput for Player {
 
 #[derive(Clone)]
 pub struct Changes {
-    force: na::Vector2<f32>,
+    pub force: na::Vector2<f32>,
+    pub contacted_platforms: Vec<usize>,
 }
 
 impl Default for Changes {
     fn default() -> Self {
         Changes {
             force: na::Vector2::new(0_f32, 0_f32),
+            contacted_platforms: vec![],
         }
     }
 }
@@ -101,6 +107,10 @@ impl Mergeable for Changes {
     fn merge(&self, other: &Self) -> Self {
         Changes {
             force: self.force + other.force,
+            contacted_platforms: self.contacted_platforms.iter()
+                .cloned()
+                .chain(other.contacted_platforms.iter().cloned())
+                .collect(),
         }
     }
 }
@@ -111,9 +121,17 @@ impl Collidable for Player {
     fn get_hitboxes<'tick>(&'tick self) -> &'tick[BoundingBox] {
         self.bboxes.as_ref()
     }
+    fn apply_changeset(&mut self, Changes { mut force, contacted_platforms }: Self::ChangeSet) {
+        log::trace!("Running changeset application on player.");
+
+        log::info!("Moving at velocity: {:?}", self.velocity);
+        self.update_for_platforms(contacted_platforms, &mut force);
+        self.handle_push(force);
+    }
     fn handle_phys_update(&mut self) {
         self.velocity += self.acceleration;
         self.position += self.velocity;
+        self.reset_for_update();
     }
     fn get_offset(&self) -> na::Vector2<f32> {
         self.position.clone()
@@ -147,8 +165,32 @@ impl Drawable for Player {
 }
 
 impl Player {
-    pub fn handle_push(&mut self, dir: &na::Vector2<f32>) {
-        self.velocity += dir;
+    fn reset_for_update(&mut self) {
+        self.acceleration = na::Vector2::zeros();
+    }
+    fn update_for_platforms(
+        &mut self,
+        platforms: Vec<usize>,
+        f: &mut na::Vector2<f32>,
+    ) {
+        self.touched_platforms = platforms;
+        let mut touching_new_platform = false;
+        for touched in self.touched_platforms.iter() {
+            if !self.platforms_to_ignore.contains(touched) {
+                touching_new_platform = true;
+                break;
+            }
+        }
+        // If falling (aka velocity is downwards) and we hit a platform
+        // we aren't falling through, we want to stop.
+        if touching_new_platform && self.velocity[1] > 0. {
+            // TODO Fix slight offsets.
+            self.acceleration[1] = -self.velocity[1];
+            f[1] = 0.;
+        }
+    }
+    pub fn handle_push(&mut self, dir: na::Vector2<f32>) {
+        self.acceleration += dir;
     }
 }
 
@@ -193,5 +235,8 @@ pub fn test_player(ctx: &mut Context) -> WalpurgisResult<Player> {
         stats: Stats {},
         abilities: vec![],
         inputs: InputScheme::default(),
+
+        platforms_to_ignore: vec![],
+        touched_platforms: vec![],
     })
 }
