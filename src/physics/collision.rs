@@ -1,4 +1,5 @@
 use ggez::nalgebra as na;
+use std::any::Any;
 
 use crate::physics::obb::BoundingBox;
 use crate::util::{
@@ -6,15 +7,8 @@ use crate::util::{
         product as cartesian_product,
         unique_square as unique_cartesian_square,
     },
-    tuple::transpose,
+    tuple::{transpose, flip_tuple_vec},
 };
-use crate::game::meta::Buff;
-
-pub enum Effect {
-    Push(ggez::nalgebra::Vector2<f32>),
-    Damage(f32),
-    Buff(Buff),
-}
 
 pub trait Mergeable {
     fn merge(&self, other: &Self) -> Self;
@@ -28,24 +22,16 @@ impl Mergeable for () {
 
 /// Any object that can be collided with should implement this trait.
 /// When object A collides with object B, both A and B should affect one another.
-pub trait Collidable {
+pub trait Collidable: Any {
     type ChangeSet: Mergeable;
     /// Gets the list of hitboxes comprising the person.
     ///
     /// TODO: Make this reflect a tree of collidables that we can narrow down in a broad and narrow
     /// phase.
     fn get_hitboxes<'tick>(&'tick self) -> &'tick[BoundingBox];
-    /// (Final interface TBD) Gets a set of effects to apply.
-    fn get_effects(&self, bb: &BoundingBox) -> Vec<Effect>;
-    // first hitbox in pair belongs to self
-    fn handle_collision<'tick, T: Collidable> (
-        &self,
-        other: &'tick T,
-        hitbox_pairs: &[(&'tick BoundingBox, &'tick BoundingBox)],
-    ) -> Self::ChangeSet;
-    fn apply_changeset(&mut self, changes: Self::ChangeSet);
-    fn handle_phys_update(&mut self);
     fn get_offset(&self) -> na::Vector2<f32>;
+    fn apply_changeset(&mut self, _changes: Self::ChangeSet) {}
+    fn handle_phys_update(&mut self) {}
 }
 
 /// Returns the details of a collision.
@@ -59,6 +45,17 @@ pub struct Collision<'tick, T: Collidable, S: Collidable> {
     ///
     /// The bounding boxes on the left belongs to the `Collidable` on the left and vice versa.
     pub overlapping_hitboxes: Vec<(&'tick BoundingBox, &'tick BoundingBox)>,
+}
+
+impl<'tick, T: Collidable, S: Collidable> Collision<'tick, T, S> {
+    pub fn flipped(self) -> Collision<'tick, S, T> {
+        let Collision { ids, objs, overlapping_hitboxes } = self;
+        Collision {
+            ids: (ids.1, ids.0),
+            objs: (objs.1, objs.0),
+            overlapping_hitboxes: flip_tuple_vec(overlapping_hitboxes),
+        }
+    }
 }
 
 type CollisionTuple<'tick, T, S> = (
@@ -187,14 +184,6 @@ mod cartesian_collision_test {
         fn get_hitboxes<'tick>(&'tick self) -> &'tick[BoundingBox] {
             &self.boxes
         }
-        fn get_effects(&self, _: &BoundingBox) -> Vec<Effect> {
-            vec![]
-        }
-        fn handle_collision<'tick, T: Collidable> (
-            &self,
-            _: &'tick T,
-            _: &[(&'tick BoundingBox, &'tick BoundingBox)],
-        ) -> Self::ChangeSet { () }
         fn apply_changeset(&mut self, _: Self::ChangeSet) {}
         fn handle_phys_update(&mut self) {}
         fn get_offset(&self) -> na::Vector2<f32> {

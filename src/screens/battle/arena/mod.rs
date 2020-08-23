@@ -5,10 +5,10 @@ use serde::{Serialize, Deserialize};
 use std::fs::{self, File};
 use std::path::Path;
 
-use crate::util::result::WalpurgisResult;
-
-pub mod platform;
-use platform::*;
+use crate::{
+    util::result::WalpurgisResult,
+    screens::battle::platform::Platform,
+};
 
 /// Stores data for the `Arena` outside of actual players.
 #[derive(Debug, Serialize, Deserialize)]

@@ -2,10 +2,12 @@ use ggez::{Context, GameResult};
 use ggez::event::{self, EventHandler, KeyCode, KeyMods};
 use ggez::graphics::{self, Drawable, DrawParam};
 
-use crate::{screens, settings};
-use crate::inputs::{HandleInput, Input};
-use crate::game::BattleData;
-use crate::util::result::WalpurgisResult;
+use crate::{
+    screens,
+    settings,
+    inputs::{HandleInput, Input},
+    util::result::WalpurgisResult,
+};
 
 /// This is the global game state.
 pub struct Walpurgis {
@@ -20,7 +22,7 @@ impl Walpurgis {
     pub fn new(ctx: &mut Context, assets: &settings::Assets) -> WalpurgisResult<Self> {
         // Load/create resources here: images, fonts, sounds, etc.
         Ok(Walpurgis {
-            screen: screens::Screen::Core(BattleData::load_first_arena_and_test_player(ctx, &assets.root)?),
+            screen: screens::Screen::first_battle(ctx, assets)?,
             fire_once_key_buffer: vec![],
         })
     }

@@ -3,7 +3,7 @@ use ggez::graphics::{self, Drawable, DrawParam, Rect, BlendMode, Mesh, DrawMode}
 use ggez::nalgebra as na;
 use serde::{Serialize, Deserialize};
 
-use crate::physics::{Collidable, Effect};
+use crate::physics::Collidable;
 
 type Radians = f32;
 
@@ -136,14 +136,6 @@ impl Collidable for BoundingBox {
         std::slice::from_ref(self)
     }
     /// (Final interface TBD) Gets a set of effects to apply.
-    fn get_effects(&self, _: &BoundingBox) -> Vec<Effect> {
-        vec![]
-    }
-    fn handle_collision<'tick, T: Collidable> (
-        &self,
-        _: &'tick T,
-        _: &[(&'tick BoundingBox, &'tick BoundingBox)],
-    ) -> Self::ChangeSet { () }
     fn apply_changeset(&mut self, _: Self::ChangeSet) {}
     fn handle_phys_update(&mut self) {}
     fn get_offset(&self) -> na::Vector2<f32> {

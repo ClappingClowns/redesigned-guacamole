@@ -14,6 +14,6 @@
 //! We’ll deal with it when perf becomes an issue.
 
 pub mod collision;
-pub use collision::{Collidable, Effect, Collision};
+pub use collision::{Collidable, Collision};
 pub mod obb;
 pub use obb::BoundingBox;

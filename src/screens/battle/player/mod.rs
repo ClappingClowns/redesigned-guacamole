@@ -111,32 +111,6 @@ impl Collidable for Player {
     fn get_hitboxes<'tick>(&'tick self) -> &'tick[BoundingBox] {
         self.bboxes.as_ref()
     }
-    fn get_effects(&self, _bb: &BoundingBox) -> Vec<Effect> {
-        vec![]
-    }
-    fn handle_collision<'tick, T: Collidable> (
-        &self,
-        other: &'tick T,
-        hitbox_pairs: &[(&'tick BoundingBox, &'tick BoundingBox)],
-    ) -> Self::ChangeSet {
-        // Create a bunch of `ChangeSet`s & then merge 'em all
-        hitbox_pairs
-            .iter()
-            .flat_map(|(_my_hb, other_hb)| {
-                other.get_effects(other_hb)
-                    .into_iter()
-                    .map(|e| {
-                        match e {
-                            Effect::Push(force) => Changes { force },
-                            _ => Default::default(),
-                        }
-                    })
-            })
-            .fold(Default::default(), |acc: Changes, x| acc.merge(&x))
-    }
-    fn apply_changeset(&mut self, change: Self::ChangeSet) {
-        self.velocity += 0.1 * change.force;
-    }
     fn handle_phys_update(&mut self) {
         self.velocity += self.acceleration;
         self.position += self.velocity;

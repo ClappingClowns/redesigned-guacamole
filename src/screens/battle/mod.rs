@@ -1,18 +1,30 @@
+//! A collection of structs useful for drawing and managing the core gameplay loop.
+//!
+//! ## Rendering Details
+//! Overlapping Attacks
+//! If Player A launches an attack and so does Player B, their attacks could overlap. If their attacks overlap, which attack appears on top?
+mod arena;
+mod platform;
+mod player;
+mod interactions;
+
 use ggez::{Context, GameResult};
 use ggez::graphics::{Drawable, DrawParam, Rect, Text, BlendMode};
 use ggez::nalgebra as na;
 use std::time::Instant;
 use std::path::Path;
 
-use super::arena::*;
-use super::player::*;
-use crate::game::arena::platform::Platform;
-use crate::physics::collision::*;
-
-use crate::inputs::{HandleInput, Input};
-use crate::util::{
-    tuple::flip_tuple_vec,
-    result::WalpurgisResult
+use crate::{
+    util::{
+        result::WalpurgisResult
+    },
+    screens::battle::{
+        arena::Arena,
+        platform::Platform,
+        player::{Player, test_player},
+    },
+    inputs::{HandleInput, Input},
+    physics::collision::*,
 };
 
 /// The data specific to each battle.
@@ -60,46 +72,46 @@ impl BattleData {
     }
 
     pub fn handle_update(&mut self) {
+        use interactions as res;
+
         // Find changes.
         let mut player_changesets: Vec<Option<<Player as Collidable>::ChangeSet>> = vec![None; self.players.len()];
         let mut platform_changesets: Vec<Option<<Platform as Collidable>::ChangeSet>> = vec![None; self.arena.platforms.len()];
 
         let collisions = check_for_collision_pairs(self.players.as_slice(), self.arena.platforms.as_slice());
-        for Collision {
-            ids: (player_idx, platform_idx),
-            objs: (player, platform),
-            overlapping_hitboxes
-        } in collisions {
-            let player_changeset = player.handle_collision(platform, &overlapping_hitboxes);
-            player_changesets[player_idx] = match &player_changesets[player_idx] {
-                Some(changeset) => Some(changeset.merge(&player_changeset)),
-                None => Some(player_changeset),
-            };
-
-            let platform_changeset = platform.handle_collision(player, &flip_tuple_vec(overlapping_hitboxes));
-            platform_changesets[platform_idx] = match platform_changesets[platform_idx] {
-                Some(changeset) => Some(changeset.merge(&platform_changeset)),
-                None => Some(platform_changeset),
-            };
+        for c in collisions {
+            let (player_id, platform_id) = c.ids;
+            let (player_changeset, platform_changeset) = res::handle_player_platform_collision(c);
+            if let Some(player_changeset) = player_changeset {
+                player_changesets[player_id] = match &player_changesets[player_id] {
+                    Some(changeset) => Some(changeset.merge(&player_changeset)),
+                    None => Some(player_changeset),
+                };
+            }
+            if let Some(platform_changeset) = platform_changeset {
+                platform_changesets[platform_id] = match platform_changesets[platform_id] {
+                    Some(changeset) => Some(changeset.merge(&platform_changeset)),
+                    None => Some(platform_changeset),
+                };
+            }
         }
 
         let collisions = check_for_collisions(self.players.as_slice());
-        for Collision {
-            ids: (idx0, idx1),
-            objs:(player0, player1),
-            overlapping_hitboxes
-        } in collisions {
-            let player0_changeset = player0.handle_collision(player1, &overlapping_hitboxes);
-            player_changesets[idx0] = match &player_changesets[idx0] {
-                Some(changeset) => Some(changeset.merge(&player0_changeset)),
-                None => Some(player0_changeset),
-            };
-
-            let player1_changeset = player1.handle_collision(player0, &flip_tuple_vec(overlapping_hitboxes));
-            player_changesets[idx1] = match &player_changesets[idx1] {
-                Some(changeset) => Some(changeset.merge(&player1_changeset)),
-                None => Some(player1_changeset),
-            };
+        for c in collisions {
+            let (p0_id, p1_id) = c.ids;
+            let (changeset0, changeset1) = res::handle_player_player_collision(c);
+            if let Some(changeset0) = changeset0 {
+                player_changesets[p0_id] = match &player_changesets[p0_id] {
+                    Some(changeset) => Some(changeset.merge(&changeset0)),
+                    None => Some(changeset0),
+                };
+            }
+            if let Some(changeset1) = changeset1 {
+                player_changesets[p1_id] = match &player_changesets[p1_id] {
+                    Some(changeset) => Some(changeset.merge(&changeset1)),
+                    None => Some(changeset1),
+                };
+            }
         }
 
         // TODO consider rollback, generic collision resolution

@@ -33,7 +33,6 @@ use ggez::ContextBuilder;
 use ggez::conf::{WindowSetup, WindowMode};
 use ggez::event;
 
-mod game;
 mod inputs;
 mod logging;
 mod physics;
